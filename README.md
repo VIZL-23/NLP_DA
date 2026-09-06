@@ -127,6 +127,42 @@ phase-notes/           per-phase write-ups and findings
 
 ---
 
+## Locked decisions
+
+**GC10-DET held-out classes (open-vocabulary protocol):**
+> `crescent_gap` · `punching_hole` · `welding_line`
+
+Chosen by exhaustively evaluating all 120 possible triples. The metric that
+matters is **worst-case seen-class retention** — how much training data the
+*remaining* classes lose to the test pool, because GC10 images are multi-label.
+
+| Candidate | Train pool | Worst-case retention |
+|---|---|---|
+| **crescent_gap / punching_hole / welding_line** | **1572 (69%)** | **73%** |
+| inclusion / oil_spot / water_spot | 1548 | 89% — *but see below* |
+| crescent_gap / water_spot / punching_hole | 1420 | **30%** ❌ |
+
+*Why this triple wins:* these three **co-occur heavily with each other**
+(punching_hole+welding_line in 222 images, crescent_gap+welding_line in 150).
+Holding them out **as a block** lets that cluster leave together. Splitting it —
+as the third row does — strands `welding_line`, which loses 70% of its training
+images. Result: every seen class now retains 92–100% (except `rolled_pit` at
+73%, which is inherently rare at 44 images).
+
+*Why not the 89% option:* it holds out `inclusion`, which also exists in
+NEU-DET. Training on NEU-DET's `inclusion` and then querying GC10's with nearly
+identical wording is **not a genuine zero-shot test** — it would inflate the
+result. Never hold out a class whose twin is in the training set.
+
+**Class-name collision — namespaced, not merged:**
+> `neu_inclusion` vs `gc10_inclusion`
+
+They are the same concept but different regimes (200×200 grayscale close-up vs
+2048×1000 steel sheet), so they get distinct class IDs. Text descriptions stay
+natural in the corpus; only the label-space identity is namespaced.
+
+---
+
 ## Things you must know before touching the data
 
 These were found by auditing and are easy to get wrong:

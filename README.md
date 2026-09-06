@@ -83,9 +83,9 @@ before starting a phase.
 |---|---|---|---|
 | **0** | Foundation | ✅ **Done** | venv + CUDA verified, Ultralytics installed, datasets audited, repo hygiene |
 | **1** | Data pipeline | ✅ **Done** | VOC→YOLO conversion, both split protocols, 60-phrase text corpus |
-| **1b** | GC10-DET + DeepCrack | ⬜ Todo | Convert the two new datasets; pick 3 held-out classes |
-| **2** | Walking skeleton | ⬜ **Next** | No-op module wired into Ultralytics, 2-epoch tiny run — proves the plumbing |
-| **3** | Baselines | ⬜ Todo | YOLOv11n trained, YOLO-World-S zero-shot, YOLOv11n+CBAM control |
+| **2** | Walking skeleton | ✅ **Done** | TG-FEM registered + placed at P3/P4/P5, trains end to end, boxes emitted |
+| **1b** | GC10-DET + DeepCrack | ⬜ Todo | Convert the two new datasets (held-out classes already chosen) |
+| **3** | Baselines | ⬜ **Next** | YOLOv11n trained, YOLO-World-S zero-shot, YOLOv11n+CBAM control |
 | **4** | Language branch | ⬜ Todo | Cache frozen CLIP embeddings; add learnable context tokens |
 | **5** | TG-FEM | ⬜ Todo | Implement the module, insert at P3/P4/P5 |
 | **6** | Training | ⬜ Todo | Full runs on both protocols |

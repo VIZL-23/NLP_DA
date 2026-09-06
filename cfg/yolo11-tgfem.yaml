@@ -1,0 +1,56 @@
+# YOLO11 + TG-FEM  -  text-guided feature enhancement at all three pyramid levels.
+#
+# Derived from ultralytics/cfg/models/11/yolo11.yaml. TG-FEM is inserted on each
+# backbone pyramid output BEFORE the PAN-FPN neck consumes it, matching report
+# section 4.2 ("applied at each of the three pyramid levels prior to the neck").
+#
+# Inserting three layers shifts every downstream index. The mapping is:
+#     stock  4 (P3) -> 5 is TGFEM(P3)     stock 13 -> 16
+#     stock  6 (P4) -> 8 is TGFEM(P4)     stock 16 -> 19
+#     stock 10 (P5) -> 13 is TGFEM(P5)    stock 19 -> 22 ; stock 22 -> 25
+# Every Concat/Detect reference below points at the CONDITIONED tensor, not the
+# raw backbone one - that is the whole point of the placement.
+
+nc: 6 # NEU-DET; overridden by the dataset YAML at train time
+scales: # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024]
+  s: [0.50, 0.50, 1024]
+  m: [0.50, 1.00, 512]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.50, 512]
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]] # 1-P2/4
+  - [-1, 2, C3k2, [256, False, 0.25]] # 2
+  - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
+  - [-1, 2, C3k2, [512, False, 0.25]] # 4
+  - [-1, 1, TGFEM, [256]] # 5  <-- TG-FEM @ P3 (80x80)
+  - [-1, 1, Conv, [512, 3, 2]] # 6-P4/16
+  - [-1, 2, C3k2, [512, True]] # 7
+  - [-1, 1, TGFEM, [256]] # 8  <-- TG-FEM @ P4 (40x40)
+  - [-1, 1, Conv, [1024, 3, 2]] # 9-P5/32
+  - [-1, 2, C3k2, [1024, True]] # 10
+  - [-1, 1, SPPF, [1024, 5]] # 11
+  - [-1, 2, C2PSA, [1024]] # 12
+  - [-1, 1, TGFEM, [256]] # 13 <-- TG-FEM @ P5 (20x20)
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 14
+  - [[-1, 8], 1, Concat, [1]] # 15  cat TG-FEM P4
+  - [-1, 2, C3k2, [512, False]] # 16
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 17
+  - [[-1, 5], 1, Concat, [1]] # 18  cat TG-FEM P3
+  - [-1, 2, C3k2, [256, False]] # 19 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]] # 20
+  - [[-1, 16], 1, Concat, [1]] # 21  cat head P4
+  - [-1, 2, C3k2, [512, False]] # 22 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]] # 23
+  - [[-1, 13], 1, Concat, [1]] # 24  cat TG-FEM P5
+  - [-1, 2, C3k2, [1024, True]] # 25 (P5/32-large)
+
+  - [[19, 22, 25], 1, Detect, [nc]] # 26 Detect(P3, P4, P5)

@@ -3,8 +3,6 @@
 venv/
 env/
 
-# --- Phase notes (local working documentation) ---
-phase-notes/
 
 # --- Python ---
 __pycache__/
@@ -30,6 +28,14 @@ cache/
 # --- Generated dataset (rebuild with scripts/prepare_neu_det.py) ---
 # Derived entirely from datasets/NEU-DET, so it must not be committed.
 datasets/neu-det-yolo/
+datasets/gc10-det-yolo/
+datasets/deepcrack-yolo/
+
+# --- Newly added source datasets (download separately, do NOT commit) ---
+# NEU-DET and SDNET2018 predate this rule and stay tracked for continuity.
+# Everything added from here on is downloaded per-machine instead.
+datasets/GC10-DET/
+datasets/DeepCrack/
 
 # --- Environment / secrets ---
 .env

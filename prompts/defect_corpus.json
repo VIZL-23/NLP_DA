@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "name": "NEU-DET steel surface defect description corpus",
+    "version": "0.1-draft",
+    "purpose": "Natural-language descriptions used to (a) build the cached CLIP text embedding matrix T, and (b) support ablation (d), which compares hand-written prompts (M=0 context tokens) against learned context tokens.",
+    "review_status": "DRAFT - domain wording needs verification before use in DA2",
+    "tiers": {
+      "bare": "Class name alone. The zero-effort baseline prompt.",
+      "natural": "Short natural phrasing an inspector would actually type.",
+      "visual": "Appearance-grounded description (shape, texture, contrast).",
+      "material": "Description grounded in the steel/rolling process context.",
+      "alias": "Domain synonym or alternative industry term."
+    },
+    "usage_note": "Held-out classes (crazing, rolled-in_scale) MUST NOT contribute descriptions to any training-time vocabulary in the openvocab protocol. Filter with scripts/build_prompts.py --protocol openvocab."
+  },
+
+  "classes": {
+    "crazing": {
+      "canonical": "crazing",
+      "held_out": true,
+      "descriptions": [
+        {"tier": "bare", "text": "crazing"},
+        {"tier": "natural", "text": "crazing on a steel surface"},
+        {"tier": "natural", "text": "a network of fine cracks covering the metal surface"},
+        {"tier": "visual", "text": "an irregular web of hairline cracks spreading across the surface"},
+        {"tier": "visual", "text": "dense interconnected fine cracking with low contrast against the background"},
+        {"tier": "visual", "text": "a mesh-like pattern of shallow surface cracks"},
+        {"tier": "material", "text": "crazing on hot-rolled steel strip"},
+        {"tier": "material", "text": "thermal crack network formed on the rolled steel surface"},
+        {"tier": "alias", "text": "craze cracking"},
+        {"tier": "alias", "text": "crack network defect"}
+      ]
+    },
+
+    "inclusion": {
+      "canonical": "inclusion",
+      "held_out": false,
+      "descriptions": [
+        {"tier": "bare", "text": "inclusion"},
+        {"tier": "natural", "text": "an inclusion in the steel surface"},
+        {"tier": "natural", "text": "foreign material embedded in the metal"},
+        {"tier": "visual", "text": "a dark elongated streak embedded in the steel surface"},
+        {"tier": "visual", "text": "a narrow vertical dark band of impurity in the metal"},
+        {"tier": "visual", "text": "an elongated dark blemish running along the rolling direction"},
+        {"tier": "material", "text": "non-metallic inclusion in hot-rolled steel"},
+        {"tier": "material", "text": "slag inclusion pressed into the steel strip during rolling"},
+        {"tier": "alias", "text": "embedded impurity"},
+        {"tier": "alias", "text": "non-metallic particle defect"}
+      ]
+    },
+
+    "patches": {
+      "canonical": "patches",
+      "held_out": false,
+      "descriptions": [
+        {"tier": "bare", "text": "patches"},
+        {"tier": "natural", "text": "surface patches on the steel"},
+        {"tier": "natural", "text": "irregular discoloured areas on the metal surface"},
+        {"tier": "visual", "text": "irregular dark blotches spread over the steel surface"},
+        {"tier": "visual", "text": "large uneven patches of darker tone against a lighter background"},
+        {"tier": "visual", "text": "cloudy regions of contrasting shade on the metal"},
+        {"tier": "material", "text": "surface patch defect on hot-rolled steel strip"},
+        {"tier": "material", "text": "localised oxidation patches on the rolled surface"},
+        {"tier": "alias", "text": "surface blotches"},
+        {"tier": "alias", "text": "discolouration patch"}
+      ]
+    },
+
+    "pitted_surface": {
+      "canonical": "pitted surface",
+      "held_out": false,
+      "descriptions": [
+        {"tier": "bare", "text": "pitted surface"},
+        {"tier": "natural", "text": "a pitted steel surface"},
+        {"tier": "natural", "text": "a surface covered in small pits and holes"},
+        {"tier": "visual", "text": "densely scattered small cavities across the metal surface"},
+        {"tier": "visual", "text": "a rough surface speckled with numerous tiny dark pits"},
+        {"tier": "visual", "text": "widespread fine pitting giving a porous appearance"},
+        {"tier": "material", "text": "corrosion pitting on a steel plate"},
+        {"tier": "material", "text": "pitting damage across hot-rolled steel strip"},
+        {"tier": "alias", "text": "corrosion pitting"},
+        {"tier": "alias", "text": "pitting corrosion"}
+      ]
+    },
+
+    "rolled-in_scale": {
+      "canonical": "rolled-in scale",
+      "held_out": true,
+      "descriptions": [
+        {"tier": "bare", "text": "rolled-in scale"},
+        {"tier": "natural", "text": "rolled-in scale on steel"},
+        {"tier": "natural", "text": "oxide scale pressed into the metal surface"},
+        {"tier": "visual", "text": "dark irregular flakes embedded into the steel surface"},
+        {"tier": "visual", "text": "scattered dark scale fragments rolled flat into the surface"},
+        {"tier": "visual", "text": "patchy dark oxide residue fused to the metal"},
+        {"tier": "material", "text": "rolled-in scale on hot-rolled steel strip"},
+        {"tier": "material", "text": "mill scale pressed into the strip during hot rolling"},
+        {"tier": "alias", "text": "mill scale defect"},
+        {"tier": "alias", "text": "embedded oxide scale"}
+      ]
+    },
+
+    "scratches": {
+      "canonical": "scratches",
+      "held_out": false,
+      "descriptions": [
+        {"tier": "bare", "text": "scratches"},
+        {"tier": "natural", "text": "scratches on the steel surface"},
+        {"tier": "natural", "text": "long thin scratch marks on the metal"},
+        {"tier": "visual", "text": "a long straight bright line running across the surface"},
+        {"tier": "visual", "text": "narrow elongated grooves scored into the metal"},
+        {"tier": "visual", "text": "thin high-contrast linear streaks along the rolling direction"},
+        {"tier": "material", "text": "mechanical scratch on hot-rolled steel strip"},
+        {"tier": "material", "text": "abrasion scoring from roller contact"},
+        {"tier": "alias", "text": "surface scoring"},
+        {"tier": "alias", "text": "abrasion mark"}
+      ]
+    }
+  }
+}

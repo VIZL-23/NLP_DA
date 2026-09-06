@@ -1,0 +1,41 @@
+# --- Virtual environment ---
+.venv/
+venv/
+env/
+
+# --- Phase notes (local working documentation) ---
+phase-notes/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- Model weights & checkpoints ---
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# --- Training / experiment outputs ---
+runs/
+wandb/
+outputs/
+
+# --- Generated caches (text embeddings, converted labels) ---
+cache/
+*.npy
+
+# --- Generated dataset (rebuild with scripts/prepare_neu_det.py) ---
+# Derived entirely from datasets/NEU-DET, so it must not be committed.
+datasets/neu-det-yolo/
+
+# --- Environment / secrets ---
+.env
+
+# --- OS & editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

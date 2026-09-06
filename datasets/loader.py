@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 class DatasetLoader:
-    def __init__(self, dataset_root="datasets"):
+    def __init__(self, dataset_root="."):
         self.dataset_root = Path(dataset_root)
 
         self.datasets = {
@@ -17,12 +17,13 @@ class DatasetLoader:
 
         for name, path in self.datasets.items():
             if path.exists():
-                num_files = sum(1 for _ in path.rglob("*") if _.is_file())
+                num_files = sum(1 for file in path.rglob("*") if file.is_file())
                 print(f"{name:<12} : Found")
-                print(f"Location     : {path}")
+                print(f"Location     : {path.resolve()}")
                 print(f"Total Files  : {num_files}\n")
             else:
-                print(f"{name:<12} : Not Found\n")
+                print(f"{name:<12} : Not Found")
+                print(f"Expected     : {path.resolve()}\n")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,18 @@
+# TG-FEM / Text-Guided Open-Vocabulary Defect Detection
+#
+# NOTE ON TORCH -------------------------------------------------------------
+# torch is NOT pinned here because it must match your CUDA driver.
+# Install it FIRST, separately, from https://pytorch.org
+# This project was developed against:
+#     torch 2.11.0+cu128  (CUDA 12.8)
+# Verify with:  python scripts/check_env.py
+# ---------------------------------------------------------------------------
+
+ultralytics==8.4.142
+
+# Pulled in transitively by ultralytics, pinned here for reproducibility:
+numpy==1.26.4
+opencv-python==4.10.0.84
+pillow==12.3.0
+PyYAML==6.0.3
+matplotlib==3.10.9

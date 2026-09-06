@@ -1,0 +1,77 @@
+[
+  {
+    "model": "yolov8s-worldv2.pt",
+    "prompt_style": "bare",
+    "prompts": [
+      "crazing",
+      "inclusion",
+      "patches",
+      "pitted surface",
+      "rolled-in scale",
+      "scratches"
+    ],
+    "split": "test",
+    "mAP50": 0.03853,
+    "mAP50_95": 0.01419,
+    "precision": 0.53414,
+    "recall": 0.10741,
+    "per_class_AP50": {
+      "crazing": 0.0,
+      "inclusion": 0.0,
+      "patches": 0.0,
+      "pitted_surface": 0.2162,
+      "rolled-in_scale": 0.0,
+      "scratches": 0.015
+    }
+  },
+  {
+    "model": "yolov8s-worldv2.pt",
+    "prompt_style": "natural",
+    "prompts": [
+      "crazing on a steel surface",
+      "an inclusion in the steel surface",
+      "surface patches on the steel",
+      "a pitted steel surface",
+      "rolled-in scale on steel",
+      "scratches on the steel surface"
+    ],
+    "split": "test",
+    "mAP50": 0.03939,
+    "mAP50_95": 0.01306,
+    "precision": 0.04481,
+    "recall": 0.1012,
+    "per_class_AP50": {
+      "crazing": 0.00033,
+      "inclusion": 0.0,
+      "patches": 0.0,
+      "pitted_surface": 0.23602,
+      "rolled-in_scale": 0.0,
+      "scratches": 0.0
+    }
+  },
+  {
+    "model": "yolov8s-worldv2.pt",
+    "prompt_style": "absurd",
+    "prompts": [
+      "banana",
+      "elephant",
+      "skateboard",
+      "umbrella",
+      "giraffe",
+      "pizza"
+    ],
+    "split": "test",
+    "mAP50": 0.0,
+    "mAP50_95": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "per_class_AP50": {
+      "crazing": 0.0,
+      "inclusion": 0.0,
+      "patches": 0.0,
+      "pitted_surface": 0.0,
+      "rolled-in_scale": 0.0,
+      "scratches": 0.0
+    }
+  }
+]

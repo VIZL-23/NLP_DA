@@ -12,37 +12,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATASETS = REPO_ROOT / "datasets"
+sys.path.insert(0, str(REPO_ROOT / "src"))
 
-NEU_CLASSES = [
-    "crazing",
-    "inclusion",
-    "patches",
-    "pitted_surface",
-    "rolled-in_scale",
-    "scratches",
-]
+# Taxonomies live in one place so the audit and the converters cannot drift.
+from tgfem.data import GC10_NAME_MAP, NEU_CLASSES  # noqa: E402
 
-# GC10-DET labels its objects with Chinese pinyin codes, not the English folder
-# names. This mapping was derived empirically by cross-referencing every XML
-# against the image's class folder.
-#
-# Two data-quality fixes are baked in:
-#   * "10_yaozhe" and "10_yaozhed" are the same class (a typo variant) - merged.
-#   * "d" is a corrupt label with a single object - deliberately absent, so the
-#     converter drops it.
-GC10_NAME_MAP = {
-    "1_chongkong": "punching_hole",
-    "2_hanfeng": "welding_line",
-    "3_yueyawan": "crescent_gap",
-    "4_shuiban": "water_spot",
-    "5_youban": "oil_spot",
-    "6_siban": "silk_spot",
-    "7_yiwu": "inclusion",
-    "8_yahen": "rolled_pit",
-    "9_zhehen": "crease",
-    "10_yaozhe": "waist_folding",
-    "10_yaozhed": "waist_folding",
-}
 
 
 def line(title):

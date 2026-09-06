@@ -84,8 +84,8 @@ before starting a phase.
 | **0** | Foundation | ✅ **Done** | venv + CUDA verified, Ultralytics installed, datasets audited, repo hygiene |
 | **1** | Data pipeline | ✅ **Done** | VOC→YOLO conversion, both split protocols, 60-phrase text corpus |
 | **2** | Walking skeleton | ✅ **Done** | TG-FEM registered + placed at P3/P4/P5, trains end to end, boxes emitted |
-| **1b** | GC10-DET + DeepCrack | ⬜ Todo | Convert the two new datasets (held-out classes already chosen) |
-| **3** | Baselines | ⬜ **Next** | YOLOv11n trained, YOLO-World-S zero-shot, YOLOv11n+CBAM control |
+| **1b** | GC10-DET + DeepCrack | ✅ **Done** | Both converted; corpus extended to 170 phrases / 17 classes |
+| **3** | Baselines | 🔄 **In progress** | YOLO-World-S done (0.0394); YOLOv11n + CBAM training |
 | **4** | Language branch | ⬜ Todo | Cache frozen CLIP embeddings; add learnable context tokens |
 | **5** | TG-FEM | ⬜ Todo | Implement the module, insert at P3/P4/P5 |
 | **6** | Training | ⬜ Todo | Full runs on both protocols |
@@ -188,17 +188,29 @@ These were found by auditing and are easy to get wrong:
 
 Measured from our own data, so an examiner could reproduce them:
 
-1. **Constraint (ii) is wrong.** The report claims defects are "<2% of image
-   pixels, aspect ratios beyond 10:1". Actual NEU-DET median box area is
-   **11.8%**; `pitted_surface` averages **55.5%**; only 3.2% of boxes exceed
-   10:1. → Rescope as a **scale-range** problem (14× spread in object area),
-   which also justifies multi-scale P3+P4+P5 conditioning better.
+1. **Constraint (ii) — attached to the wrong dataset.** The report claims
+   defects are "<2% of image pixels, aspect ratios beyond 10:1". False for
+   NEU-DET (median box **11.8%**, only 3.2% above 10:1) — but **true** for the
+   others. Reframe as **three scale regimes**:
+
+   | dataset | median box area | <2% area | >10:1 |
+   |---|---|---|---|
+   | NEU-DET | 11.79% | 6.9% | 3.2% |
+   | GC10-DET | 3.49% | 39.6% | 10.7% |
+   | DeepCrack | 1.11% | — | — |
+
+   This is stronger than the original claim *and* better justifies multi-scale
+   P3+P4+P5 conditioning.
 2. **The dataset scale claim is off.** "≈106,000 images / 55,000 instances"
-   counts RDD2022 (not used) and SDNET2018 (no instances). Real detection
-   instances: **4,189** (NEU-DET) + **3,542** (GC10-DET).
+   counts RDD2022 (not used) and SDNET2018 (no boxes at all). Real detection
+   instances: **4,189** (NEU-DET) + **3,541** (GC10-DET) + **1,864** (DeepCrack).
 3. **§4.2 formula inconsistency.** `F' = F⊙g⊙s + F` gives `2F` when `g=s=1`, not
    the identity. Either drop the `+F` or say it reduces to identity as gates→0.
 4. **CLIP text dim is 512, not 256.** `T` is declared `N×256`; a projection is
    needed, or `d` corrected.
+5. **Corpus size.** §4.1 says "approximately 60 defect descriptions"; it is now
+   **170** across 17 classes.
+6. **DeepCrack boxes are loose by construction** — median fill ratio 16.6%.
+   State it as a known limitation of box-based crack detection.
 
-See `phase-notes/PHASE-1.md` §4 for the full numbers.
+See `phase-notes/PHASE-1.md` §4 and `PHASE-1b.md` §3–4 for the full numbers.

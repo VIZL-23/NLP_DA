@@ -28,6 +28,10 @@ def register() -> None:
         return
 
     import ultralytics.nn.tasks as tasks
+    from ultralytics.nn.modules import CBAM
 
     tasks.TGFEM = TGFEM
+    # CBAM ships with Ultralytics but is not exposed in the tasks namespace, so
+    # a model YAML cannot name it either. The CBAM control config needs it.
+    tasks.CBAM = CBAM
     _REGISTERED = True

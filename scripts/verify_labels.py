@@ -1,103 +1,120 @@
-"""Phase 1 - Visual sanity check of the YOLO conversion.
+"""Visual sanity check of a YOLO conversion.
 
 Draws the converted (normalised) boxes back onto the images. If the conversion
-maths is wrong, the boxes will visibly miss the defects.
+maths is wrong, the boxes visibly miss the defects.
 
 Run:
-    python scripts/verify_labels.py
+    python scripts/verify_labels.py --dataset neu
+    python scripts/verify_labels.py --dataset gc10
+    python scripts/verify_labels.py --dataset deepcrack
 Writes:
-    phase-notes/assets/label_check.png
+    phase-notes/assets/label_check_<dataset>.png
 """
 
+import argparse
 import random
+import sys
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import yaml
 from PIL import Image
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DATA = REPO_ROOT / "datasets" / "neu-det-yolo"
-OUT_PNG = REPO_ROOT / "phase-notes" / "assets" / "label_check.png"
+sys.path.insert(0, str(REPO_ROOT / "src"))
 
-CLASSES = [
-    "crazing",
-    "inclusion",
-    "patches",
-    "pitted_surface",
-    "rolled-in_scale",
-    "scratches",
+DATASETS = {
+    "neu": (REPO_ROOT / "datasets" / "neu-det-yolo", "neu_closed.yaml", 2),
+    "gc10": (REPO_ROOT / "datasets" / "gc10-det-yolo", "gc10_closed.yaml", 2),
+    "deepcrack": (REPO_ROOT / "datasets" / "deepcrack-yolo", "deepcrack_ood.yaml", 3),
+}
+
+PALETTE = [
+    "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231",
+    "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#008080",
 ]
-COLORS = ["#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4"]
-
 SEED = 7
-PER_CLASS = 2  # sample images per class
 
 
-def load_boxes(stem):
-    """Read a YOLO label file -> [(cls_idx, cx, cy, w, h)]."""
-    path = DATA / "labels" / f"{stem}.txt"
+def load_boxes(data_dir, stem):
     boxes = []
-    for line in path.read_text().strip().splitlines():
+    for line in (data_dir / "labels" / f"{stem}.txt").read_text().strip().splitlines():
         parts = line.split()
         boxes.append((int(parts[0]), *map(float, parts[1:])))
     return boxes
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dataset", choices=sorted(DATASETS), default="neu")
+    ap.add_argument("--samples", type=int, default=0,
+                    help="override number of sample images")
+    args = ap.parse_args()
+
+    data_dir, yaml_name, per_group = DATASETS[args.dataset]
+    if not data_dir.exists():
+        raise SystemExit(f"missing {data_dir} - run the matching prepare_*.py first")
+
+    names = yaml.safe_load((data_dir / yaml_name).read_text())["names"]
+    classes = [names[i] for i in sorted(names)]
+
     rng = random.Random(SEED)
-    OUT_PNG.parent.mkdir(parents=True, exist_ok=True)
+    stems = sorted(p.stem for p in (data_dir / "labels").glob("*.txt"))
 
-    # Pick sample images whose filename starts with each class name.
-    all_stems = sorted(p.stem for p in (DATA / "labels").glob("*.txt"))
-    chosen = []
-    for cls in CLASSES:
-        pool = [s for s in all_stems if s.startswith(cls)]
-        rng.shuffle(pool)
-        chosen.extend(pool[:PER_CLASS])
+    # Pick samples that between them exercise as many classes as possible.
+    chosen, seen = [], set()
+    pool = stems[:]
+    rng.shuffle(pool)
+    for stem in pool:
+        present = {b[0] for b in load_boxes(data_dir, stem)}
+        if present - seen or len(chosen) < per_group:
+            chosen.append(stem)
+            seen |= present
+        if len(chosen) >= (args.samples or max(len(classes), 6)):
+            break
 
-    cols = PER_CLASS
-    rows = len(CLASSES)
-    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3.2, rows * 3.2))
+    cols = 3
+    rows = (len(chosen) + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3.6, rows * 3.2))
     axes = axes.reshape(rows, cols)
 
-    total_boxes = 0
+    total = 0
     for i, stem in enumerate(chosen):
         ax = axes[i // cols][i % cols]
-        img = Image.open(DATA / "images" / f"{stem}.jpg")
+        img_path = next((data_dir / "images").glob(f"{stem}.*"))
+        img = Image.open(img_path)
         W, H = img.size
         ax.imshow(img, cmap="gray")
 
-        for cls_idx, cx, cy, w, h in load_boxes(stem):
-            # Denormalise back to pixels; if the maths is right these land on
-            # the defect.
-            px = (cx - w / 2) * W
-            py = (cy - h / 2) * H
-            pw, ph = w * W, h * H
+        for cls_idx, cx, cy, w, h in load_boxes(data_dir, stem):
+            px, py = (cx - w / 2) * W, (cy - h / 2) * H
+            color = PALETTE[cls_idx % len(PALETTE)]
             ax.add_patch(patches.Rectangle(
-                (px, py), pw, ph,
-                linewidth=1.8, edgecolor=COLORS[cls_idx], facecolor="none",
-            ))
-            ax.text(
-                px, max(py - 3, 8), CLASSES[cls_idx],
-                color="white", fontsize=7,
-                bbox=dict(facecolor=COLORS[cls_idx], edgecolor="none", pad=1),
-            )
-            total_boxes += 1
+                (px, py), w * W, h * H,
+                linewidth=1.4, edgecolor=color, facecolor="none"))
+            ax.text(px, max(py - 3, 8), classes[cls_idx],
+                    color="white", fontsize=6,
+                    bbox=dict(facecolor=color, edgecolor="none", pad=0.8))
+            total += 1
 
-        ax.set_title(f"{stem}  ({W}x{H})", fontsize=8)
+        ax.set_title(f"{stem}  ({W}x{H})", fontsize=7)
         ax.axis("off")
 
-    fig.suptitle(
-        "Phase 1 label verification - converted YOLO boxes drawn on source images",
-        fontsize=11,
-    )
-    fig.tight_layout(rect=[0, 0, 1, 0.98])
-    fig.savefig(OUT_PNG, dpi=110)
-    print(f"checked {len(chosen)} images, {total_boxes} boxes")
-    print(f"written: {OUT_PNG}")
+    for j in range(len(chosen), rows * cols):
+        axes[j // cols][j % cols].axis("off")
+
+    fig.suptitle(f"Label verification - {args.dataset}: converted YOLO boxes "
+                 f"drawn on source images", fontsize=11)
+    fig.tight_layout(rect=[0, 0, 1, 0.97])
+
+    out = REPO_ROOT / "phase-notes" / "assets" / f"label_check_{args.dataset}.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=110)
+    print(f"checked {len(chosen)} images, {total} boxes")
+    print(f"written: {out}")
 
 
 if __name__ == "__main__":

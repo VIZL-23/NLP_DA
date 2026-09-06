@@ -11,7 +11,7 @@ Run:
 
 import argparse
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -105,13 +105,19 @@ def main():
         print("\nvalidation: PASS")
 
     total = 0
-    print("\nper class:")
+    by_dataset = defaultdict(list)
     for cls, entry in corpus["classes"].items():
-        n = len(entry["descriptions"])
-        total += n
-        flag = "HELD OUT" if entry.get("held_out") else "seen"
-        print(f"  {cls:<18} {n:>3} phrases   [{flag}]")
-    print(f"  {'TOTAL':<18} {total:>3} phrases")
+        by_dataset[entry.get("dataset", "unknown")].append((cls, entry))
+
+    print("\nper class:")
+    for dataset in sorted(by_dataset):
+        print(f"  [{dataset}]")
+        for cls, entry in by_dataset[dataset]:
+            n = len(entry["descriptions"])
+            total += n
+            flag = "HELD OUT" if entry.get("held_out") else "seen"
+            print(f"    {cls:<18} {n:>3} phrases   [{flag}]")
+    print(f"  {'TOTAL':<20} {total:>3} phrases")
 
     tiers = Counter(d["tier"] for e in corpus["classes"].values() for d in e["descriptions"])
     print("\nper tier:")

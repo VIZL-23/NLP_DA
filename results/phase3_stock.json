@@ -1,0 +1,28 @@
+{
+  "variant": "stock",
+  "config": "yolo11n.yaml",
+  "pretrained": "yolo11n.pt",
+  "epochs": 150,
+  "batch": 16,
+  "imgsz": 640,
+  "seed": 42,
+  "split": "test",
+  "mAP50": 0.77169,
+  "mAP50_95": 0.43356,
+  "precision": 0.78797,
+  "recall": 0.68554,
+  "per_class_AP50": {
+    "crazing": 0.52788,
+    "inclusion": 0.80014,
+    "patches": 0.87735,
+    "pitted_surface": 0.82896,
+    "rolled-in_scale": 0.65828,
+    "scratches": 0.93751
+  },
+  "speed_ms": {
+    "preprocess": 1.36,
+    "inference": 4.87,
+    "loss": 0.0,
+    "postprocess": 0.77
+  }
+}

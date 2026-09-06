@@ -85,8 +85,8 @@ before starting a phase.
 | **1** | Data pipeline | ✅ **Done** | VOC→YOLO conversion, both split protocols, 60-phrase text corpus |
 | **2** | Walking skeleton | ✅ **Done** | TG-FEM registered + placed at P3/P4/P5, trains end to end, boxes emitted |
 | **1b** | GC10-DET + DeepCrack | ✅ **Done** | Both converted; corpus extended to 170 phrases / 17 classes |
-| **3** | Baselines | 🔄 **In progress** | YOLO-World-S done (0.0394); YOLOv11n + CBAM training |
-| **4** | Language branch | ⬜ Todo | Cache frozen CLIP embeddings; add learnable context tokens |
+| **3** | Baselines | ✅ **Done** | stock 0.7717 · CBAM 0.7372 · YOLO-World-S 0.0394 |
+| **4** | Language branch | ⬜ **Next** | Cache frozen CLIP embeddings; add learnable context tokens |
 | **5** | TG-FEM | ⬜ Todo | Implement the module, insert at P3/P4/P5 |
 | **6** | Training | ⬜ Todo | Full runs on both protocols |
 | **7** | Evaluation & ablations | ⬜ Todo | mAP, zero-shot, FPS + the 7 ablations |
@@ -103,6 +103,23 @@ before starting a phase.
 3. **Baselines before novelty.** You cannot claim "+5 mAP over YOLO-World-S"
    without a YOLO-World-S number — and if TG-FEM disappoints, solid baselines
    are still a report.
+
+### Baseline results (Phase 3, NEU-DET test split)
+
+| baseline | mAP@0.5 | role |
+|---|---|---|
+| YOLOv11n (COCO-pretrained) | **0.7717** | closed-vocab ceiling |
+| YOLOv11n + CBAM (from scratch) | **0.7372** | attention control |
+| YOLO-World-S zero-shot | **0.0394** | open-vocab competitor |
+
+**Targets for TG-FEM:** retention ≥ **0.7417** · zero-shot gain ≥ **0.0894**
+
+> ⚠ **The retention criterion is confounded.** Stock is COCO-pretrained; any
+> custom-module variant (CBAM, TG-FEM) must train from scratch because
+> inserting layers shifts the state-dict indices. CBAM already fails the
+> 0.7417 threshold with no text conditioning at all — so the criterion is
+> currently measuring *pretraining*, not architecture. **Run a from-scratch
+> stock baseline before Phase 6.** See `phase-notes/PHASE-3.md` §3.
 
 ### Priority ablations
 Of the seven planned, three are load-bearing — run these first:

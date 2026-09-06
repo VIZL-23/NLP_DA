@@ -1,0 +1,28 @@
+{
+  "variant": "cbam",
+  "config": "yolo11-cbam.yaml",
+  "pretrained": null,
+  "epochs": 150,
+  "batch": 16,
+  "imgsz": 640,
+  "seed": 42,
+  "split": "test",
+  "mAP50": 0.73724,
+  "mAP50_95": 0.41497,
+  "precision": 0.60588,
+  "recall": 0.73783,
+  "per_class_AP50": {
+    "crazing": 0.4802,
+    "inclusion": 0.7821,
+    "patches": 0.9047,
+    "pitted_surface": 0.76842,
+    "rolled-in_scale": 0.58954,
+    "scratches": 0.8985
+  },
+  "speed_ms": {
+    "preprocess": 1.62,
+    "inference": 5.31,
+    "loss": 0.0,
+    "postprocess": 1.04
+  }
+}

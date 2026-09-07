@@ -10,18 +10,22 @@
 All numbers are on the **held-out test split** of the NEU-DET closed protocol
 (190 images, 429 instances), untouched until this point.
 
-| Baseline | Role | mAP@0.5 | mAP@0.5:0.95 | P | R | ms/img |
-|---|---|---|---|---|---|---|
-| **YOLOv11n (stock)** | closed-vocab upper bound | **0.7717** | 0.4336 | 0.788 | 0.686 | 4.87 |
-| **YOLOv11n + CBAM** | visual-attention control | **0.7372** | 0.4150 | 0.606 | 0.738 | 5.31 |
-| **YOLO-World-S** | open-vocab competitor (zero-shot) | **0.0394** | 0.0131 | — | — | 10.5 |
+| Baseline | Init | Role | mAP@0.5 | mAP@0.5:0.95 | P | R | ms/img |
+|---|---|---|---|---|---|---|---|
+| **YOLOv11n (stock)** | pretrained | absolute ceiling | **0.7717** | 0.4336 | 0.788 | 0.686 | 4.87 |
+| **YOLOv11n + CBAM** | scratch | visual-attention control | **0.7372** | 0.4150 | 0.606 | 0.738 | 5.31 |
+| **YOLOv11n (scratch)** | scratch | **like-for-like retention anchor** | **0.7069** | 0.3947 | 0.631 | 0.692 | 5.27 |
+| **YOLO-World-S** | — | open-vocab competitor (zero-shot) | **0.0394** | 0.0131 | — | — | 10.5 |
 
 ### The two criteria are now concrete numbers
 
 | Criterion (report §3) | Threshold |
 |---|---|
-| **Retention** — within 3 mAP@0.5 of the closed baseline | TG-FEM ≥ **0.7417** |
+| **Retention** — within 3 mAP@0.5 of the closed baseline, measured against the **from-scratch** anchor | TG-FEM ≥ **0.6769** |
 | **Gain** — +5 mAP@0.5 over zero-shot YOLO-World-S | TG-FEM ≥ **0.0894** on held-out classes |
+
+**But the threshold that actually matters is CBAM's 0.7372**, not the retention
+floor — see §3.
 
 The distance between those two numbers — **0.77 vs 0.04** — is the whole project
 in one line: a closed detector is excellent on classes it was trained on, and a
@@ -32,14 +36,14 @@ to live somewhere in between.
 
 ## 2. Per-class AP@0.5
 
-| class | stock | CBAM | Δ |
+| class | stock (pretrained) | stock_scratch | CBAM |
 |---|---|---|---|
-| scratches | 0.938 | 0.899 | −0.039 |
-| patches | 0.877 | **0.905** | **+0.028** |
-| pitted_surface | 0.829 | 0.768 | −0.061 |
-| inclusion | 0.800 | 0.782 | −0.018 |
-| rolled-in_scale | 0.658 | 0.590 | −0.069 |
-| crazing | 0.528 | 0.480 | −0.048 |
+| scratches | 0.938 | 0.904 | 0.899 |
+| patches | 0.877 | 0.850 | **0.905** |
+| pitted_surface | 0.829 | 0.807 | 0.768 |
+| inclusion | 0.800 | 0.775 | 0.782 |
+| rolled-in_scale | 0.658 | 0.519 | 0.590 |
+| crazing | 0.528 | 0.386 | 0.480 |
 
 **`crazing` (0.53) and `rolled-in_scale` (0.66) are the two weakest classes for
 both models — and they are exactly the two classes held out in the NEU-DET
@@ -54,47 +58,74 @@ the mean, so this is visible rather than buried.
 
 ---
 
-## 3. ⚠ The retention criterion is currently measuring pretraining, not architecture
+## 3. ⭐ The confound, resolved — and CBAM is not a weak control
 
-**CBAM scores 0.7372 — which already FAILS the 0.7417 retention threshold**,
-despite containing no text conditioning at all and being a plain attention
-variant of the same backbone.
-
-The reason is a confound in how the baselines had to be trained:
-
-| | initialisation |
-|---|---|
-| YOLOv11n stock | **COCO-pretrained** (`yolo11n.pt`) |
-| YOLOv11n + CBAM | **from scratch** — no pretrained checkpoint exists for this architecture |
-| YOLOv11n + TG-FEM | will also be **from scratch** |
-
+### The problem
 Inserting modules at layers 5/8/13 shifts every downstream index, so the stock
-state dict no longer maps onto the modified architecture. Any custom-module
-variant therefore starts from random init while the stock baseline starts with
-a large head start.
+`yolo11n.pt` state dict no longer maps onto the modified architecture. Every
+custom-module variant (CBAM, TG-FEM) must therefore train **from scratch**,
+while plain `stock` starts **COCO-pretrained**.
 
-**Consequence:** as written, the 3-point retention criterion compares a
-from-scratch model against a pretrained one. It measures the value of COCO
-pretraining, not the value of the architecture. CBAM demonstrates this: it
-tracked stock almost exactly on *validation* (0.788 vs 0.791) yet lands 3.4
-points behind on *test*.
+On that basis CBAM (0.7372) appeared to *fail* the original 0.7417 retention
+threshold, despite containing no text conditioning at all. The criterion was
+measuring pretraining, not architecture.
 
-### Recommended fix — run a fourth baseline
-Train **stock YOLOv11n from scratch** (`pretrained=None`, everything else
-identical). That gives a like-for-like retention anchor, and costs one ~2-hour
-run. Then:
+### The fix
+A fourth baseline was run: **stock YOLOv11n, `pretrained=None`**, architecture,
+schedule and seed otherwise identical. It isolates the two effects cleanly.
 
-- retention is measured against the **from-scratch** stock number;
-- the **pretrained** number stays in the table as the absolute ceiling.
+| comparison | Δ mAP@0.5 | what it isolates |
+|---|---|---|
+| stock **−** stock_scratch | **+0.065** | value of COCO pretraining |
+| CBAM **−** stock_scratch | **+0.030** | value of attention, init controlled |
 
-Without this, a TG-FEM result below 0.7417 is uninterpretable — we could not say
-whether the module underperformed or simply lacked pretraining.
+### The result reverses the earlier reading
 
-### What is already a fair comparison
+**CBAM (0.7372) BEATS the fair anchor (0.7069) by 3.0 points.** Attention is not
+costing accuracy — it was carrying a 6.5-point pretraining handicap that made it
+*look* worse than it is.
+
+Two consequences:
+
+1. **The retention floor drops to 0.6769** (0.7069 − 0.03) when measured
+   like-for-like. CBAM passes it comfortably.
+2. **The bar that actually matters is CBAM's 0.7372, not the retention floor.**
+   Attention alone already buys +3.0 points. For TG-FEM to support the paper's
+   claim it must beat **CBAM**, not merely clear a retention threshold — because
+   anything between 0.677 and 0.737 would be explained by attention, with text
+   conditioning contributing nothing.
+
+**This is exactly why the control was worth two hours.** Without it the honest
+conclusion would have been "CBAM hurts", which is false, and TG-FEM would have
+been measured against the wrong bar.
+
+### Where attention helps — and it is the interesting place
+
+| class | stock_scratch | CBAM | Δ |
+|---|---|---|---|
+| **crazing** | 0.386 | **0.480** | **+0.094** |
+| **rolled-in_scale** | 0.519 | **0.590** | **+0.070** |
+| patches | 0.850 | 0.905 | +0.055 |
+| gc10_inclusion → inclusion | 0.775 | 0.782 | +0.007 |
+| scratches | 0.904 | 0.899 | −0.005 |
+| pitted_surface | 0.807 | 0.768 | −0.039 |
+
+Attention delivers almost all of its gain on **`crazing` and
+`rolled-in_scale`** — the two hardest, most texture-confusable classes, and
+**the exact pair held out in the NEU-DET open-vocabulary protocol.**
+
+This is direct support for the report's **G3** narrative. MPA-YOLO's authors
+report that attention "struggles with interference" when background texture
+resembles the defect; here attention is precisely where the texture-confusable
+classes improve most. It also sharpens the TG-FEM hypothesis: if
+text-conditioned gates beat feature-conditioned gates, the gain should appear
+*on these same two classes*. That is a specific, falsifiable prediction to test
+in Phase 6 — much stronger than a mean-mAP comparison.
+
+### The load-bearing comparison
 **TG-FEM vs CBAM** — both from scratch, both at layers 5/8/13, both shape
-preserving, same optimiser/seed/schedule. This is exactly ablation **(g)** in the
-report ("gates driven by F rather than by S"), and it is the load-bearing
-comparison for the paper's actual claim. That one needs no correction.
+preserving, same optimiser/seed/schedule. This is ablation **(g)** and it needs
+no correction. Report per-class AP for it, not just the mean.
 
 ---
 
@@ -197,12 +228,17 @@ AMP on, `neu_closed.yaml`.
 
 ## 8. Carried forward
 
-1. **Run a from-scratch stock baseline** (§3). Without it the retention
-   criterion is not interpretable. One ~2-hour run; do it before Phase 6.
-2. **Report per-class zero-shot AP**, not just the mean — the held-out classes
-   are the hardest ones (§2).
-3. **Report corrections:** FPS is measured on an RTX 4050, not a T4; the
-   >30 FPS constraint has a 6× margin.
-4. The `set_classes` override (§4) will bite again in Phase 4 when we cache
+1. **TG-FEM must beat CBAM (0.7372), not the retention floor (0.6769)** (§3).
+   Anything in between is explained by attention alone.
+2. **Falsifiable prediction to test in Phase 6:** if text conditioning works,
+   the gain over CBAM should concentrate on `crazing` and `rolled-in_scale` —
+   the texture-confusable classes where attention already helps most. Report
+   per-class AP, not just the mean.
+3. **Report per-class zero-shot AP** too — the held-out classes are the hardest
+   ones (§2).
+4. **Report corrections:** the retention criterion must name which baseline it
+   is measured against (pretrained vs scratch); FPS is measured on an RTX 4050,
+   not a T4; the >30 FPS constraint has a 6× margin.
+5. The `set_classes` override (§4) will bite again in Phase 4 when we cache
    CLIP embeddings — the same "prompts get overwritten" trap applies to any
    evaluation path that goes through a World validator.

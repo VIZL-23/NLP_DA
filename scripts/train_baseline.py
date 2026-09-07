@@ -33,9 +33,26 @@ RESULTS = REPO_ROOT / "results"
 VARIANTS = {
     # name  : (model spec, pretrained weights or None)
     "stock": ("yolo11n.yaml", "yolo11n.pt"),
+    "stock_scratch": ("yolo11n.yaml", None),
     "cbam": (str(REPO_ROOT / "cfg" / "yolo11-cbam.yaml"), None),
     "tgfem": (str(REPO_ROOT / "cfg" / "yolo11-tgfem.yaml"), None),
 }
+
+# WHY stock_scratch EXISTS
+# -----------------------
+# Inserting a module at layers 5/8/13 shifts every downstream index, so the
+# COCO-pretrained yolo11n.pt state dict no longer maps onto the modified
+# architecture. Every custom-module variant (cbam, tgfem) therefore trains from
+# scratch, while plain `stock` starts pretrained.
+#
+# Comparing them directly measures the value of COCO pretraining, not of the
+# architecture - and CBAM already fails the report's 3-point retention
+# threshold on that basis alone, despite containing no text conditioning.
+#
+# `stock_scratch` is the like-for-like retention anchor: identical architecture
+# to `stock`, identical schedule, but random init like the module variants.
+# Retention should be judged against THIS number; `stock` stays in the table as
+# the absolute ceiling. See phase-notes/PHASE-3.md section 3.
 
 
 def main():

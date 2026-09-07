@@ -106,20 +106,35 @@ before starting a phase.
 
 ### Baseline results (Phase 3, NEU-DET test split)
 
-| baseline | mAP@0.5 | role |
+| baseline | init | mAP@0.5 | role |
+|---|---|---|---|
+| YOLOv11n | pretrained | **0.7717** | absolute ceiling |
+| YOLOv11n + CBAM | scratch | **0.7372** | attention control |
+| YOLOv11n | scratch | **0.7069** | like-for-like retention anchor |
+| YOLO-World-S zero-shot | — | **0.0394** | open-vocab competitor |
+
+Custom-module variants (CBAM, TG-FEM) **must** train from scratch — inserting
+layers at 5/8/13 shifts the state-dict indices, so `yolo11n.pt` no longer maps
+onto them. Comparing them against the pretrained number measures pretraining,
+not architecture, so a from-scratch anchor was added.
+
+Isolating the two effects:
+- COCO pretraining is worth **+6.5** points (0.7717 − 0.7069)
+- Attention is worth **+3.0** points (0.7372 − 0.7069)
+
+**Targets for TG-FEM:**
+
+| target | value | why |
 |---|---|---|
-| YOLOv11n (COCO-pretrained) | **0.7717** | closed-vocab ceiling |
-| YOLOv11n + CBAM (from scratch) | **0.7372** | attention control |
-| YOLO-World-S zero-shot | **0.0394** | open-vocab competitor |
+| retention floor | ≥ 0.6769 | 3 pts below the from-scratch anchor |
+| **the bar that matters** | **> 0.7372** | must beat CBAM — anything less is explained by attention alone |
+| zero-shot gain | ≥ 0.0894 | +5 pts over YOLO-World-S |
 
-**Targets for TG-FEM:** retention ≥ **0.7417** · zero-shot gain ≥ **0.0894**
-
-> ⚠ **The retention criterion is confounded.** Stock is COCO-pretrained; any
-> custom-module variant (CBAM, TG-FEM) must train from scratch because
-> inserting layers shifts the state-dict indices. CBAM already fails the
-> 0.7417 threshold with no text conditioning at all — so the criterion is
-> currently measuring *pretraining*, not architecture. **Run a from-scratch
-> stock baseline before Phase 6.** See `phase-notes/PHASE-3.md` §3.
+> **Falsifiable prediction.** Attention's gain concentrates on `crazing`
+> (+0.094) and `rolled-in_scale` (+0.070) — the texture-confusable classes, and
+> the NEU-DET held-out pair. If text conditioning works, TG-FEM's gain over CBAM
+> should appear on these same classes. Report per-class AP, not just the mean.
+> See `phase-notes/PHASE-3.md` §3.
 
 ### Priority ablations
 Of the seven planned, three are load-bearing — run these first:

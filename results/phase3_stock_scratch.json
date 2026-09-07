@@ -1,0 +1,28 @@
+{
+  "variant": "stock_scratch",
+  "config": "yolo11n.yaml",
+  "pretrained": null,
+  "epochs": 150,
+  "batch": 16,
+  "imgsz": 640,
+  "seed": 42,
+  "split": "test",
+  "mAP50": 0.70693,
+  "mAP50_95": 0.39471,
+  "precision": 0.63096,
+  "recall": 0.69209,
+  "per_class_AP50": {
+    "crazing": 0.38615,
+    "inclusion": 0.77539,
+    "patches": 0.84966,
+    "pitted_surface": 0.80723,
+    "rolled-in_scale": 0.51921,
+    "scratches": 0.90392
+  },
+  "speed_ms": {
+    "preprocess": 1.43,
+    "inference": 5.27,
+    "loss": 0.0,
+    "postprocess": 0.69
+  }
+}

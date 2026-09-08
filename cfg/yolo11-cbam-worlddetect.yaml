@@ -1,0 +1,61 @@
+# Ablation (g) - "gates driven by image vs by text": the load-bearing
+# comparison, and per the README "this one is the paper".
+#
+# This is NOT the same CBAM model as cfg/yolo11-cbam.yaml. That earlier config
+# (Phase 3) paired CBAM with a stock, closed-vocabulary Detect head, because at
+# that point in the project there was no text branch anywhere yet - its job was
+# isolating "does attention help at all" from COCO pretraining, for the
+# retention-table baseline. That comparison and its numbers
+# (results/phase3_cbam.json) stay valid and are not reproduced here.
+#
+# Ablation (g) asks a different, narrower question: once BOTH models share the
+# same open-vocabulary classification path (WorldDetect, fed the same text
+# embeddings TG-FEM uses), does it matter whether the P3/P4/P5 attention GATES
+# are computed from the image's own pooled statistics (CBAM) or from the
+# text-conditioned region response S (TG-FEM, module.py)? That is the one
+# structural difference this config is built to isolate - everything else
+# (backbone, neck, head, channel counts, parameter count at each of the three
+# gate positions) is identical to cfg/yolo11-tgfem.yaml.
+#
+# NOTE ON CHANNELS: CBAM's constructor takes c1 (input channels) explicitly,
+# same caveat as yolo11-cbam.yaml - these are correct for the **n** scale only.
+
+nc: 6 # NEU-DET; overridden by the dataset YAML at train time
+scales: # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024]
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]] # 1-P2/4
+  - [-1, 2, C3k2, [256, False, 0.25]] # 2
+  - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
+  - [-1, 2, C3k2, [512, False, 0.25]] # 4
+  - [-1, 1, CBAM, [128, 7]] # 5  <-- CBAM @ P3 (80x80), c1=128
+  - [-1, 1, Conv, [512, 3, 2]] # 6-P4/16
+  - [-1, 2, C3k2, [512, True]] # 7
+  - [-1, 1, CBAM, [128, 7]] # 8  <-- CBAM @ P4 (40x40), c1=128
+  - [-1, 1, Conv, [1024, 3, 2]] # 9-P5/32
+  - [-1, 2, C3k2, [1024, True]] # 10
+  - [-1, 1, SPPF, [1024, 5]] # 11
+  - [-1, 2, C2PSA, [1024]] # 12
+  - [-1, 1, CBAM, [256, 7]] # 13 <-- CBAM @ P5 (20x20), c1=256
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 14
+  - [[-1, 8], 1, Concat, [1]] # 15  cat CBAM P4
+  - [-1, 2, C3k2, [512, False]] # 16
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 17
+  - [[-1, 5], 1, Concat, [1]] # 18  cat CBAM P3
+  - [-1, 2, C3k2, [256, False]] # 19 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]] # 20
+  - [[-1, 16], 1, Concat, [1]] # 21  cat head P4
+  - [-1, 2, C3k2, [512, False]] # 22 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]] # 23
+  - [[-1, 13], 1, Concat, [1]] # 24  cat CBAM P5
+  - [-1, 2, C3k2, [1024, True]] # 25 (P5/32-large)
+
+  - [[19, 22, 25], 1, WorldDetect, [nc, 512, False]] # 26 same head as TG-FEM - only the gates differ

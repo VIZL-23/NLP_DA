@@ -1,0 +1,55 @@
+# Ablation (a) - TG-FEM removed (identity check).
+#
+# Structurally IDENTICAL to cfg/yolo11-tgfem.yaml - same layers, same channel
+# counts, same parameter budget (see src/tgfem/module.py CHANNEL COUNT / Phase 2
+# finding: `identity=True` still materialises proj/channel_gate/spatial_gate,
+# it just never uses them in forward). The only difference is the second YAML
+# arg, `True`, which forces every TGFEM instance into exact pass-through mode.
+#
+# This isolates "does TG-FEM's mechanism do anything" from "does TG-FEM have
+# more parameters than stock" - a naive ablation that just deletes the layer
+# would confound the two. See phase-notes/PHASE-2.md section 4.
+
+nc: 6 # NEU-DET; overridden by the dataset YAML at train time
+scales: # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024]
+  s: [0.50, 0.50, 1024]
+  m: [0.50, 1.00, 512]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.50, 512]
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]] # 1-P2/4
+  - [-1, 2, C3k2, [256, False, 0.25]] # 2
+  - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
+  - [-1, 2, C3k2, [512, False, 0.25]] # 4
+  - [-1, 1, TGFEM, [512, True]] # 5  <-- TG-FEM @ P3 (80x80), identity=True
+  - [-1, 1, Conv, [512, 3, 2]] # 6-P4/16
+  - [-1, 2, C3k2, [512, True]] # 7
+  - [-1, 1, TGFEM, [512, True]] # 8  <-- TG-FEM @ P4 (40x40), identity=True
+  - [-1, 1, Conv, [1024, 3, 2]] # 9-P5/32
+  - [-1, 2, C3k2, [1024, True]] # 10
+  - [-1, 1, SPPF, [1024, 5]] # 11
+  - [-1, 2, C2PSA, [1024]] # 12
+  - [-1, 1, TGFEM, [512, True]] # 13 <-- TG-FEM @ P5 (20x20), identity=True
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 14
+  - [[-1, 8], 1, Concat, [1]] # 15  cat TG-FEM P4
+  - [-1, 2, C3k2, [512, False]] # 16
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 17
+  - [[-1, 5], 1, Concat, [1]] # 18  cat TG-FEM P3
+  - [-1, 2, C3k2, [256, False]] # 19 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]] # 20
+  - [[-1, 16], 1, Concat, [1]] # 21  cat head P4
+  - [-1, 2, C3k2, [512, False]] # 22 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]] # 23
+  - [[-1, 13], 1, Concat, [1]] # 24  cat TG-FEM P5
+  - [-1, 2, C3k2, [1024, True]] # 25 (P5/32-large)
+
+  - [[19, 22, 25], 1, WorldDetect, [nc, 512, False]] # 26 same head as the active model - only the gates differ

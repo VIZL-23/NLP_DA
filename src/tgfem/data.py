@@ -91,3 +91,37 @@ GC10_HELD_OUT = {"crescent_gap", "punching_hole", "welding_line"}
 # generic term that would collide with any concrete-crack vocabulary added
 # later.
 DEEPCRACK_CLASSES = ["crack"]
+
+
+# --------------------------------------------------------------------------
+# Phase 4/6 - training-vocabulary helper
+# --------------------------------------------------------------------------
+# Shared by scripts/train_tgfem.py and scripts/eval_tgfem.py so the two never
+# pick different phrases for the same class - see build_prompts.py for corpus
+# *validation* (this only does selection, deliberately not re-implementing
+# that logic).
+
+import json
+from pathlib import Path
+
+CORPUS_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "defect_corpus.json"
+
+
+def load_corpus() -> dict:
+    return json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
+
+
+def class_texts_for(classes: list[str], tier: str = "natural", corpus: dict | None = None) -> list[str]:
+    """One phrase per class, in the given (class-index) order - order MUST
+    match the dataset YAML's `names`, since WorldDetect/TG-FEM match text to
+    ground truth by index, never by string (Phase 3 finding, eval_yoloworld.py).
+    Falls back to the class's `bare` phrase if the requested tier is absent."""
+    corpus = corpus or load_corpus()
+    texts = []
+    for c in classes:
+        descs = corpus["classes"][c]["descriptions"]
+        text = next((d["text"] for d in descs if d["tier"] == tier), None)
+        if text is None:
+            text = next(d["text"] for d in descs if d["tier"] == "bare")
+        texts.append(text)
+    return texts

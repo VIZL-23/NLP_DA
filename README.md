@@ -86,11 +86,19 @@ before starting a phase.
 | **2** | Walking skeleton | ✅ **Done** | TG-FEM registered + placed at P3/P4/P5, trains end to end, boxes emitted |
 | **1b** | GC10-DET + DeepCrack | ✅ **Done** | Both converted; corpus extended to 170 phrases / 17 classes |
 | **3** | Baselines | ✅ **Done** | stock 0.7717 · CBAM 0.7372 · YOLO-World-S 0.0394 |
-| **4** | Language branch | ⬜ **Next** | Cache frozen CLIP embeddings; add learnable context tokens |
-| **5** | TG-FEM | ⬜ Todo | Implement the module, insert at P3/P4/P5 |
-| **6** | Training | ⬜ Todo | Full runs on both protocols |
-| **7** | Evaluation & ablations | ⬜ Todo | mAP, zero-shot, FPS + the 7 ablations |
-| **8** | Report & demo | ⬜ Todo | DA2 writeup, live demo |
+| **4** | Language branch | ✅ **Done**\* | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
+| **5** | TG-FEM | ✅ **Done**\* | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
+| **6** | Training | 🚧 **Scripts ready, blocked** | `scripts/train_tgfem.py` exists and is smoke-tested; needs a GPU to actually run (none in this sandbox) |
+| **7** | Evaluation & ablations | 🚧 **Scripts ready, blocked** | `scripts/run_ablations.py` + `scripts/eval_tgfem.py`; depends on Phase 6's runs |
+| **8** | Report & demo | 🚧 **Scaffolded, blocked** | `scripts/demo.py` exists; needs a trained checkpoint from Phase 6 |
+
+\* **Code and structural verification only** — this sandbox has no GPU and no
+route to `huggingface.co`, so every check above ran on CPU with a
+randomly-initialised CLIP encoder. Shapes, gradients, and checkpointing are
+verified correct; **no accuracy number produced anywhere past Phase 3 is
+meaningful yet.** See `phase-notes/PHASE-4.md` §5 and `PHASE-6.md` §4 for
+exactly what's blocked and the commands to run once a GPU + internet-
+connected machine is available.
 
 ### Build strategy
 
@@ -149,11 +157,32 @@ Of the seven planned, three are load-bearing — run these first:
 scripts/
   check_env.py         toolchain + dataset audit (run this first)
   prepare_neu_det.py   VOC→YOLO, splits, dataset YAMLs, geometry stats
+  prepare_gc10.py      GC10-DET VOC→YOLO + splits + YAMLs
+  prepare_deepcrack.py DeepCrack mask→box (connected components) + YAMLs
   verify_labels.py     draws converted boxes back onto images
   build_prompts.py     text-corpus validation + protocol filtering
+  train_baseline.py    Phase 3 baselines (stock / stock_scratch / cbam)
+  eval_yoloworld.py    Phase 3 YOLO-World-S zero-shot baseline
+  train_skeleton.py    Phase 2 walking-skeleton gate check (identity TG-FEM)
+  train_tgfem_gate.py  Phase 5 gate check (real TG-FEM + language branch)
+  train_tgfem.py        Phase 6 training (tgfem / tgfem_identity / cbam_worlddetect)
+  run_ablations.py     Phase 7 ablation dispatcher (resumable)
+  eval_tgfem.py         Phase 7 negative control + cross-variant comparison
+  demo.py               Phase 8 text-query inference demo
+src/tgfem/
+  module.py             TGFEM - real math (Phase 5)
+  language.py           TextEncoder, ContextTokenLearner, TextConditioner (Phase 4)
+  detection_model.py    TGFEMModel - WorldDetect text threading (Phase 5)
+  trainer.py             TGFEMTrainer - optimiser/checkpoint wiring (Phase 5)
+  data.py                canonical taxonomies + corpus phrase selection
+cfg/
+  yolo11-tgfem.yaml            the model (TG-FEM gates + WorldDetect head)
+  yolo11-tgfem-ablation-a.yaml ablation (a) - identity mode, same param budget
+  yolo11-cbam.yaml             Phase 3 closed-vocab CBAM baseline (stock Detect)
+  yolo11-cbam-worlddetect.yaml ablation (g) - CBAM gates + WorldDetect head
 prompts/
-  defect_corpus.json   60 natural-language defect descriptions  (DRAFT)
-datasets/              source data + generated neu-det-yolo/ (gitignored)
+  defect_corpus.json   170 natural-language defect descriptions, 17 classes  (DRAFT)
+datasets/              source data + generated *-yolo/ dirs (gitignored)
 phase-notes/           per-phase write-ups and findings
 ```
 

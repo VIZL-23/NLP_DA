@@ -26,7 +26,6 @@ already populated by the same pre-hook, through their own single-input
 from __future__ import annotations
 
 import torch
-
 from ultralytics.nn.modules import WorldDetect
 from ultralytics.nn.tasks import DetectionModel
 

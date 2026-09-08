@@ -35,11 +35,11 @@ How the pieces connect:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
+from torch import nn
 from ultralytics.cfg import DEFAULT_CFG
 from ultralytics.models.yolo.detect import DetectionTrainer
-
 from ultralytics.nn.modules import WorldDetect
 
 from .detection_model import TGFEMModel
@@ -76,14 +76,18 @@ class TGFEMTrainer(DetectionTrainer):
         if weights:
             model.load(weights)
 
-        tgfem_layers = [m for m in model.model if isinstance(m, TGFEM)]
+        # BaseModel.model is untyped upstream (mypy infers a Tensor|Module
+        # union from unrelated call sites in Ultralytics' own code) - it is
+        # always the parse_model-built nn.Sequential at runtime.
+        layers = cast(nn.Sequential, model.model)
+        tgfem_layers: list[nn.Module] = [m for m in layers if isinstance(m, TGFEM)]
         # TGFEM layers are the module ablation (a) toggles to identity and
         # ablation (g) replaces with CBAM entirely - zero is a legitimate
         # count for cbam_worlddetect (README, ablation (g): same head, only
         # the gate source differs). What every variant this trainer runs
         # DOES need is the WorldDetect head, since that's what the language
         # branch actually threads text into (see module docstring).
-        if not isinstance(model.model[-1], WorldDetect):
+        if not isinstance(layers[-1], WorldDetect):
             raise RuntimeError(
                 "TGFEMTrainer was asked to train a model with no WorldDetect head - "
                 "wrong cfg? (expected cfg/yolo11-tgfem*.yaml or yolo11-cbam-worlddetect.yaml)"
@@ -104,6 +108,10 @@ class TGFEMTrainer(DetectionTrainer):
 
     def preprocess_batch(self, batch: dict[str, Any]) -> dict[str, Any]:
         batch = super().preprocess_batch(batch)
+        # get_model() always runs (and sets this) before any batch is
+        # preprocessed - DetectionTrainer._setup_train() calls setup_model()
+        # ahead of building the dataloaders that produce batches.
+        assert self.text_conditioner is not None
         # Keep the text branch on the same device as the batch/model - a
         # no-op after the first call, cheap to check every time.
         device = batch["img"].device

@@ -98,7 +98,27 @@ semantic noise (same caveat as every run so far).
 
 ---
 
-## 5. Files created
+## 5. A real bug, and a real gap, found by actually running things
+
+Two things only surfaced once Phase 7's `run_ablations.py` was actually
+executed end to end (not just `train_tgfem.py` on its own) — see
+`phase-notes/PHASE-7.md` §4a for the full account:
+
+- **`cbam_worlddetect` (ablation (g)) crashed immediately.**
+  `TGFEMTrainer.get_model()` wrongly required at least one TGFEM layer to
+  exist; that config deliberately has zero. Fixed in `src/tgfem/trainer.py`
+  by checking for the `WorldDetect` head instead, which is the actual
+  requirement. This variant had never been trained even once before the fix.
+- **Results carried no speed/FPS data**, unlike Phase 3's
+  `train_baseline.py`. Added `speed_ms` to `train_tgfem.py`'s output JSON
+  and a matching column to `eval_tgfem.py`'s comparison table.
+
+Both are now fixed and re-verified (all 6 priority variants train
+successfully; the results JSON includes inference timing).
+
+---
+
+## 6. Files created
 
 ```
 scripts/train_tgfem.py   Phase 6 training script (tgfem / tgfem_identity / cbam_worlddetect)
@@ -106,32 +126,35 @@ scripts/train_tgfem.py   Phase 6 training script (tgfem / tgfem_identity / cbam_
 
 ---
 
-## 6. Gate check
+## 7. Gate check
 
 | Criterion | Status |
 |---|---|
-| Script covers all three Phase 5 model variants | Pass |
+| Script covers all three Phase 5 model variants | Pass — all three actually trained successfully (§5) |
 | Vocabulary construction matches class-index order (no string-matching bug) | Pass |
 | Evaluates on TEST split, separately from training-time val | Pass |
-| Results schema consistent with Phase 3's `results/phase3_*.json` | Pass |
+| Results schema consistent with Phase 3's `results/phase3_*.json`, including speed | Pass |
 | Smoke-tested end to end (structure, not accuracy) | Pass |
 | A real 150-epoch/GPU run produced | **Blocked — no GPU available yet** |
 
-**Phase 6 gate: PASSED structurally, blocked on compute for the actual
-numbers.**
+**Phase 6 gate: PASSED, with all three model variants actually run and
+verified working - not just structurally checked. Only real-scale numbers
+remain blocked on compute.**
 
 ---
 
-## 7. Carried forward
+## 8. Carried forward
 
 1. **Run the four commands in §4 on a GPU machine with internet access.**
    This is the single largest remaining piece of work on the whole project
-   — everything upstream of it (Phases 0-5) is done and verified; nothing
-   downstream (Phase 7's ablations, Phase 8's report numbers) can happen
-   without these runs existing.
+   — everything upstream of it (Phases 0-5, and now the bug fixes in §5) is
+   done and verified; nothing downstream (Phase 7's ablations, Phase 8's
+   report numbers) can happen without these runs existing.
 2. Confirm `pretrained_clip_loaded: true` in the resulting JSONs before
    using them for anything.
 3. GC10-DET and DeepCrack aren't present on this machine either (gitignored,
    download separately per the README) — Phase 6 runs against `neu` only
    were exercised so far; the `--dataset gc10` path is written but untested
-   end-to-end for lack of the data.
+   end-to-end for lack of the data. (DeepCrack now has a dedicated eval
+   script, `scripts/eval_deepcrack.py` — see `PHASE-7.md` §6 — tested
+   against synthetic placeholder data for the same reason.)

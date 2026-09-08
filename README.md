@@ -171,6 +171,7 @@ scripts/
   train_tgfem.py       Phase 6 training (tgfem / tgfem_identity / cbam_worlddetect)
   run_ablations.py     Phase 7 ablation dispatcher (resumable)
   eval_tgfem.py        Phase 7 negative control + cross-variant comparison
+  eval_deepcrack.py    Phase 7 DeepCrack OOD zero-shot evaluation
   demo.py              Phase 8 text-query inference demo
 src/tgfem/
   module.py            TGFEM - real math (Phase 5)

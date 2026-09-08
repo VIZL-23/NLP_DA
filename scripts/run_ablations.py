@@ -62,7 +62,7 @@ def run_one(variant, n_ctx, tier, dataset, protocol, epochs, batch, imgsz, devic
         "--device", device, "--seed", str(seed),
     ]
     print(f"\n$ {' '.join(cmd)}\n")
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, check=False)  # return code checked explicitly below, not raised
     return result.returncode == 0
 
 

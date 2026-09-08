@@ -106,24 +106,24 @@ def main():
     print()
 
     trainer = TGFEMTrainer(
-        overrides=dict(
-            model=str(CFG[args.variant]),
-            data=str(data_path),
-            epochs=args.epochs,
-            batch=args.batch,
-            imgsz=args.imgsz,
-            device=args.device,
-            seed=args.seed,
-            amp=torch.cuda.is_available(),
-            workers=args.workers,
-            project=str(REPO_ROOT / "runs"),
-            name=run_name,
-            exist_ok=True,
-            plots=True,
-            val=True,
-            class_texts=class_texts,
-            n_ctx=args.n_ctx,
-        )
+        overrides={
+            "model": str(CFG[args.variant]),
+            "data": str(data_path),
+            "epochs": args.epochs,
+            "batch": args.batch,
+            "imgsz": args.imgsz,
+            "device": args.device,
+            "seed": args.seed,
+            "amp": torch.cuda.is_available(),
+            "workers": args.workers,
+            "project": str(REPO_ROOT / "runs"),
+            "name": run_name,
+            "exist_ok": True,
+            "plots": True,
+            "val": True,
+            "class_texts": class_texts,
+            "n_ctx": args.n_ctx,
+        }
     )
     trainer.train()
 
@@ -170,12 +170,17 @@ def main():
             names[c]: round(float(metrics.box.ap50[i]), 5)
             for i, c in enumerate(metrics.box.ap_class_index)
         },
+        "speed_ms": {k: round(v, 2) for k, v in metrics.speed.items()},
     }
 
     RESULTS.mkdir(exist_ok=True)
     out = RESULTS / f"{run_name}.json"
     out.write_text(json.dumps(summary, indent=2))
-    print(f"\nsaved -> {out}")
+
+    infer = summary["speed_ms"].get("inference", 0)
+    if infer:
+        print(f"\ninference    : {infer:.1f} ms  (~{1000 / infer:.0f} FPS)")
+    print(f"saved -> {out}")
 
 
 if __name__ == "__main__":

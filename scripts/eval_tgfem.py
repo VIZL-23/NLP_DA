@@ -81,9 +81,10 @@ def negative_control(checkpoint: Path, data_yaml: Path, device: str, imgsz: int,
         tc.attach(model, tgfem_layers)
         # model.args may not exist on a bare loaded model - build minimal args instead
         from ultralytics.cfg import get_cfg
-        val_args = get_cfg(overrides=dict(
-            data=str(data_yaml), split="test", imgsz=imgsz, batch=batch, device=device, plots=False,
-        ))
+        val_args = get_cfg(overrides={
+            "data": str(data_yaml), "split": "test", "imgsz": imgsz, "batch": batch,
+            "device": device, "plots": False,
+        })
         validator = DetectionValidator(args=val_args, save_dir=REPO_ROOT / "runs" / f"eval_control_{tag}")
         validator(model=model)
         return validator.metrics
@@ -117,9 +118,11 @@ def compare(dataset: str, protocol: str):
     print("=" * 78)
     print(f"Phase 6/7 comparison - {dataset} / {protocol}")
     print("=" * 78)
-    print(f"{'variant':<20}{'n_ctx':>6}{'tier':>10}{'mAP@0.5':>10}{'CLIP real?':>12}")
+    print(f"{'variant':<20}{'n_ctx':>6}{'tier':>10}{'mAP@0.5':>10}{'infer ms':>10}{'CLIP real?':>12}")
     for r in rows:
-        print(f"{r['variant']:<20}{r['n_ctx']:>6}{r['tier']:>10}{r['mAP50']:>10.4f}"
+        infer = r.get("speed_ms", {}).get("inference")
+        infer_str = f"{infer:.1f}" if infer else "n/a"
+        print(f"{r['variant']:<20}{r['n_ctx']:>6}{r['tier']:>10}{r['mAP50']:>10.4f}{infer_str:>10}"
               f"{'yes' if r.get('pretrained_clip_loaded') else 'NO':>12}")
 
     tgfem = next((r for r in rows if r["variant"] == "tgfem"), None)

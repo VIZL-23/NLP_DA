@@ -51,6 +51,10 @@ class TextEncoder(nn.Module):
     individually addressable rather than calling `encode_text` directly.
     """
 
+    positional_embedding: torch.Tensor
+    text_projection: torch.nn.Parameter
+    attn_mask: torch.Tensor
+
     def __init__(self, device: str = "cpu"):
         super().__init__()
         import open_clip
@@ -87,6 +91,17 @@ class TextEncoder(nn.Module):
         self.positional_embedding = model.positional_embedding
         self.transformer = model.transformer
         self.ln_final = model.ln_final
+        # open_clip's own encode_text handles two possible types here
+        # (nn.Linear or a raw Parameter, model-config dependent) - forward_ids/
+        # forward_embeds below only implement the Parameter (matmul) case.
+        # True for every open_clip config CLIP_MODEL_NAME could name today;
+        # this assert is what would catch it if that ever stopped holding,
+        # rather than a silent wrong-shape matmul.
+        assert isinstance(model.text_projection, torch.nn.Parameter), (
+            f"{CLIP_MODEL_NAME}'s text_projection is an {type(model.text_projection).__name__}, "
+            "not a Parameter - forward_ids/forward_embeds need the nn.Linear branch "
+            "open_clip's own encode_text uses added before this will work correctly."
+        )
         self.text_projection = model.text_projection
         self.register_buffer("attn_mask", model.attn_mask, persistent=False)
 
@@ -143,6 +158,8 @@ class ContextTokenLearner(nn.Module):
     matrix `T` used by TG-FEM changes as training proceeds even though CLIP
     itself never updates.
     """
+
+    ctx: nn.Parameter | None
 
     def __init__(self, encoder: TextEncoder, n_ctx: int = 8):
         super().__init__()

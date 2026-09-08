@@ -34,6 +34,17 @@ name. A dedicated "zero-shot eval script" would just be re-deriving numbers
 Phase 6 already produces; `eval_tgfem.py` instead covers what that run does
 **not**: a negative control and a cross-variant comparison (§3, §4).
 
+**Verified, not just argued.** `--protocol openvocab` had never actually
+been run before this pass — every earlier test in this project used
+`closed`. Ran it once (toy scale): 1075 training images, exactly matching
+Phase 1's documented open-vocab train split count, and the resulting
+`results/phase6_neu_openvocab_tgfem.json` reports `per_class_AP50` for
+`crazing` and `rolled-in_scale` (the held-out pair) alongside the seen
+classes. That is the entire zero-shot mechanism this project exists to
+demonstrate, confirmed mechanically end to end for the first time. No new
+bug found - numbers are still noise at this scale and with a random-init
+text encoder.
+
 ---
 
 ## 3. Negative control, re-verified against a real checkpoint
@@ -81,6 +92,14 @@ Each variant is a separate `python` subprocess (not an in-process loop), so
 one failing/OOMing run can't corrupt another's state, and already-completed
 runs (`results/phase6_*.json` present) are skipped — the script is
 resumable.
+
+**Dead flag removed.** The script originally took a `--priority-only`
+argument that was parsed but never read - `plan = PRIORITY` ran
+unconditionally either way. Since no non-priority plan was ever wired up
+(the paragraph above explains why: the other four ablations are flag
+combinations, not separate plans), the flag implied an alternative that
+didn't exist. Removed rather than wired up, since there is genuinely
+nothing else to run yet.
 
 ---
 

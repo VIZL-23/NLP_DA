@@ -17,8 +17,8 @@ another's CUDA/optimizer state.
 
 Run (needs GPU + real CLIP weights - see language.py's module docstring for
 why this needs a GPU machine to actually run):
-    python scripts/run_ablations.py --priority-only
-    python scripts/run_ablations.py --dataset neu --protocol closed
+    python scripts/run_ablations.py
+    python scripts/run_ablations.py --dataset neu --protocol openvocab
 """
 
 import argparse
@@ -77,9 +77,13 @@ def main():
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--device", default="0")
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--priority-only", action="store_true")
     args = ap.parse_args()
 
+    # PRIORITY is the only plan that exists (see the module docstring: the
+    # other four ablations are flag variations on the same script, not
+    # separate configs) - there used to be a --priority-only flag implying
+    # an opt-out into some larger plan, but no such plan was ever wired up,
+    # so it was a no-op that misrepresented what this script does. Removed.
     plan = PRIORITY
     print("=" * 62)
     print(f"Phase 7 ablation plan - {args.dataset}/{args.protocol}")

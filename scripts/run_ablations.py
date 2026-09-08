@@ -16,7 +16,7 @@ subprocess (not an in-process import) so one variant's failure can't corrupt
 another's CUDA/optimizer state.
 
 Run (needs GPU + real CLIP weights - see language.py's module docstring for
-why this sandbox can't do a real run):
+why this needs a GPU machine to actually run):
     python scripts/run_ablations.py --priority-only
     python scripts/run_ablations.py --dataset neu --protocol closed
 """

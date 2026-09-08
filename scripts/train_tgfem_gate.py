@@ -14,13 +14,13 @@ Proves the plumbing, not accuracy:
     6. the model survives a checkpoint round-trip with the dynamically
        materialised TGFEM parameters intact
 
-NOTE ON WHAT THIS DOES NOT PROVE: this sandbox has no GPU and (usually) no
-route to huggingface.co, so `TextEncoder` almost certainly falls back to a
-randomly-initialised CLIP tower (see language.py). Accuracy numbers from this
-run are structurally meaningless twice over - 1-2 epochs on a slice of data,
-AND a text encoder with no semantic content. Re-run on a machine with normal
-internet + GPU access, with `encoder.pretrained_loaded == True`, before
-treating any accuracy number as real. See phase-notes/PHASE-5.md.
+NOTE ON WHAT THIS DOES NOT PROVE: without a GPU or a route to huggingface.co,
+`TextEncoder` almost certainly falls back to a randomly-initialised CLIP
+tower (see language.py). Accuracy numbers from this run are structurally
+meaningless twice over - 1-2 epochs on a slice of data, AND a text encoder
+with no semantic content. Re-run on a machine with normal internet + GPU
+access, with `encoder.pretrained_loaded == True`, before treating any
+accuracy number as real. See phase-notes/PHASE-5.md.
 
 Run:
     python scripts/train_tgfem_gate.py

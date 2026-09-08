@@ -10,9 +10,9 @@ before each forward pass.
 NETWORK NOTE - READ BEFORE TRUSTING ANY EMBEDDING-SPACE RESULT
 ----------------------------------------------------------------
 Loading real CLIP weights requires reaching huggingface.co (open_clip's
-weight host). Some sandboxes have no general internet egress and cannot
-reach it - this code was itself developed in one. When the download fails,
-`TextEncoder` falls back to a **randomly-initialised** transformer of the
+weight host). Some machines have no route to it - this code was itself
+developed on one. When the download fails, `TextEncoder` falls back to a
+**randomly-initialised** transformer of the
 identical open_clip ViT-B-32 architecture and output dimensionality, and
 prints a loud warning instead of failing silently.
 

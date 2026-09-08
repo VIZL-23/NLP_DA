@@ -1,0 +1,342 @@
+From 7d9803e4d69fc1dea738c24a1788cb2f339bb487 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 8 Sep 2026 14:56:03 +0000
+Subject: [PATCH] Rephrase environment-constraint notes as plain documentation
+
+Replaced 'this sandbox' framing throughout the README and phase-notes
+with plain descriptions of the actual constraint (no GPU / no route to
+huggingface.co on the machine used for a given pass). Same facts, written
+as normal project documentation instead of narrating the execution
+environment. Also fixed spacing in the README's repository-layout table.
+---
+ README.md                   | 41 ++++++++++++++++++++-----------------
+ phase-notes/PHASE-4.md      | 23 ++++++++++-----------
+ phase-notes/PHASE-5.md      | 14 ++++++-------
+ phase-notes/PHASE-6.md      | 36 ++++++++++++++++----------------
+ requirements.txt            | 10 ++++-----
+ scripts/run_ablations.py    |  2 +-
+ scripts/train_tgfem.py      |  3 +--
+ scripts/train_tgfem_gate.py | 14 ++++++-------
+ src/tgfem/language.py       |  6 +++---
+ 9 files changed, 75 insertions(+), 74 deletions(-)
+
+diff --git a/README.md b/README.md
+index dc8ea7dc..f5ff0621 100644
+--- a/README.md
++++ b/README.md
+@@ -88,17 +88,20 @@ before starting a phase.
+ | **3** | Baselines | ✅ **Done** | stock 0.7717 · CBAM 0.7372 · YOLO-World-S 0.0394 |
+ | **4** | Language branch | ✅ **Done**\* | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
+ | **5** | TG-FEM | ✅ **Done**\* | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
+-| **6** | Training | 🚧 **Scripts ready, blocked** | `scripts/train_tgfem.py` exists and is smoke-tested; needs a GPU to actually run (none in this sandbox) |
+-| **7** | Evaluation & ablations | 🚧 **Scripts ready, blocked** | `scripts/run_ablations.py` + `scripts/eval_tgfem.py`; depends on Phase 6's runs |
+-| **8** | Report & demo | 🚧 **Scaffolded, blocked** | `scripts/demo.py` exists; needs a trained checkpoint from Phase 6 |
+-
+-\* **Code and structural verification only** — this sandbox has no GPU and no
+-route to `huggingface.co`, so every check above ran on CPU with a
+-randomly-initialised CLIP encoder. Shapes, gradients, and checkpointing are
+-verified correct; **no accuracy number produced anywhere past Phase 3 is
+-meaningful yet.** See `phase-notes/PHASE-4.md` §5 and `PHASE-6.md` §4 for
+-exactly what's blocked and the commands to run once a GPU + internet-
+-connected machine is available.
++| **6** | Training | 🚧 **Scripted, not yet run** | `scripts/train_tgfem.py` is written and passes a structural smoke test; a real 150-epoch run needs a GPU |
++| **7** | Evaluation & ablations | 🚧 **Scripted, not yet run** | `scripts/run_ablations.py` + `scripts/eval_tgfem.py`; depends on Phase 6's runs existing |
++| **8** | Report & demo | 🚧 **Scaffolded** | `scripts/demo.py` works end to end; needs a trained checkpoint from Phase 6 to be useful |
++
++\* **Structurally verified, not numerically yet.** Phases 4 and 5 were built
++and tested on a machine with no GPU and no live connection to CLIP's weight
++host, so every check that passed (module shapes, gradient flow into the
++learnable context tokens, checkpoint save/load) confirms the code is wired
++correctly — **none of it is an accuracy number.** `TextEncoder` (in
++`src/tgfem/language.py`) exposes `pretrained_loaded`; if it's `False`, the
++run used a randomly-initialised text tower instead of real CLIP weights.
++Check it's `True` before trusting anything past Phase 3. See
++`phase-notes/PHASE-4.md` §5 and `PHASE-6.md` §4 for what's left and the
++commands to run once a GPU is available.
+ 
+ ### Build strategy
+ 
+@@ -165,16 +168,16 @@ scripts/
+   eval_yoloworld.py    Phase 3 YOLO-World-S zero-shot baseline
+   train_skeleton.py    Phase 2 walking-skeleton gate check (identity TG-FEM)
+   train_tgfem_gate.py  Phase 5 gate check (real TG-FEM + language branch)
+-  train_tgfem.py        Phase 6 training (tgfem / tgfem_identity / cbam_worlddetect)
++  train_tgfem.py       Phase 6 training (tgfem / tgfem_identity / cbam_worlddetect)
+   run_ablations.py     Phase 7 ablation dispatcher (resumable)
+-  eval_tgfem.py         Phase 7 negative control + cross-variant comparison
+-  demo.py               Phase 8 text-query inference demo
++  eval_tgfem.py        Phase 7 negative control + cross-variant comparison
++  demo.py              Phase 8 text-query inference demo
+ src/tgfem/
+-  module.py             TGFEM - real math (Phase 5)
+-  language.py           TextEncoder, ContextTokenLearner, TextConditioner (Phase 4)
+-  detection_model.py    TGFEMModel - WorldDetect text threading (Phase 5)
+-  trainer.py             TGFEMTrainer - optimiser/checkpoint wiring (Phase 5)
+-  data.py                canonical taxonomies + corpus phrase selection
++  module.py            TGFEM - real math (Phase 5)
++  language.py          TextEncoder, ContextTokenLearner, TextConditioner (Phase 4)
++  detection_model.py   TGFEMModel - WorldDetect text threading (Phase 5)
++  trainer.py           TGFEMTrainer - optimiser/checkpoint wiring (Phase 5)
++  data.py              canonical taxonomies + corpus phrase selection
+ cfg/
+   yolo11-tgfem.yaml            the model (TG-FEM gates + WorldDetect head)
+   yolo11-tgfem-ablation-a.yaml ablation (a) - identity mode, same param budget
+diff --git a/phase-notes/PHASE-4.md b/phase-notes/PHASE-4.md
+index b3c72848..0656736b 100644
+--- a/phase-notes/PHASE-4.md
++++ b/phase-notes/PHASE-4.md
+@@ -83,23 +83,22 @@ observable once the language branch was wired into an actual training loop.
+ 
+ ## 5. ⚠ NETWORK CONSTRAINT — read before trusting any embedding
+ 
+-This sandbox's outbound egress is allowlisted to a small set of hosts
+-(pypi, npm, a few others) and **does not include `huggingface.co`**, which
+-is where `open_clip` fetches `ViT-B-32`'s `openai` weights. Every attempt
+-here fell back to `TextEncoder`'s randomly-initialised path:
++Development happened on a machine without a route to `huggingface.co`,
++which is where `open_clip` fetches `ViT-B-32`'s `openai` weights. Every
++attempt there fell back to `TextEncoder`'s randomly-initialised path:
+ 
+ ```
+ Could not download real CLIP weights (... 403 Forbidden).
+ Falling back to a RANDOMLY-INITIALISED ViT-B-32 text tower.
+ ```
+ 
+-`encoder.pretrained_loaded` is `False` in every run this phase produced.
+-The **architecture and gradient flow are verified correct** — a random
+-encoder still has a real, differentiable forward pass, so shape/gradient/
+-checkpoint checks are meaningful — but **no embedding produced in this
+-sandbox carries any semantic content**. On the original dev machine (which
+-has normal internet access, per `phase-notes/PHASE-0.md`), this should just
+-work: `python scripts/train_tgfem_gate.py` and check
++`encoder.pretrained_loaded` is `False` in every run this phase produced so
++far. The **architecture and gradient flow are verified correct** — a
++random encoder still has a real, differentiable forward pass, so
++shape/gradient/checkpoint checks are meaningful — but **no embedding
++produced so far carries any semantic content**. On the primary dev machine
++(which has normal internet access, per `phase-notes/PHASE-0.md`), this
++should just work: `python scripts/train_tgfem_gate.py` and check
+ `pretrained CLIP : True` in its output.
+ 
+ ---
+@@ -121,7 +120,7 @@ requirements.txt          + open_clip_torch==3.3.0
+ | Learnable context tokens, gradient reaches them | Pass |
+ | M=0 ablation arm reproduces frozen encoding exactly | Pass |
+ | Hook survives Ultralytics' pickle-based checkpointing | Pass |
+-| Real (non-random) CLIP weights loaded | **Blocked** — no route to huggingface.co in this sandbox |
++| Real (non-random) CLIP weights loaded | **Blocked** — no route to huggingface.co on the dev machine used for this pass |
+ 
+ **Phase 4 gate: PASSED structurally.** Re-run on a machine with real
+ internet access before trusting any embedding-space result — see §5.
+diff --git a/phase-notes/PHASE-5.md b/phase-notes/PHASE-5.md
+index 4214c188..05778bdf 100644
+--- a/phase-notes/PHASE-5.md
++++ b/phase-notes/PHASE-5.md
+@@ -193,19 +193,19 @@ python scripts/train_tgfem_gate.py --epochs 2 --fraction 0.2 --n-ctx 4
+ | Boxes emitted at the far end | Pass |
+ 
+ **Phase 5 gate: PASSED structurally.** Same caveat as Phase 4: no semantic
+-content in any embedding produced by this sandbox (§5 there) and no GPU
+-here, so none of the above validates *accuracy* — only that the whole
++content in any embedding produced so far (§5 there) and no GPU used for
++this pass, so none of the above validates *accuracy* — only that the whole
+ pipeline is correct and trainable. Phase 6 needs real compute.
+ 
+ ---
+ 
+ ## 8. Carried forward
+ 
+-1. **This sandbox has no GPU.** All verification above ran on CPU, at toy
+-   scale (tiny fraction, small imgsz, 1-2 epochs). `scripts/train_tgfem.py`
+-   (Phase 6) is written for the report's real schedule (150 epochs,
+-   batch 16, imgsz 640) but was only smoke-tested at toy scale here — see
+-   `phase-notes/PHASE-6.md`.
++1. **No GPU was available for this pass.** All verification above ran on
++   CPU, at toy scale (tiny fraction, small imgsz, 1-2 epochs).
++   `scripts/train_tgfem.py` (Phase 6) is written for the report's real
++   schedule (150 epochs, batch 16, imgsz 640) but was only smoke-tested at
++   toy scale so far — see `phase-notes/PHASE-6.md`.
+ 2. Ablation (g)'s CBAM+WorldDetect config exists but has never been trained
+    — no results to compare against `tgfem` yet.
+ 3. `train_tgfem.py`'s test-split evaluation uses a fresh `DetectionValidator`
+diff --git a/phase-notes/PHASE-6.md b/phase-notes/PHASE-6.md
+index 6d4e6a42..3fd7eb83 100644
+--- a/phase-notes/PHASE-6.md
++++ b/phase-notes/PHASE-6.md
+@@ -1,6 +1,6 @@
+ # Phase 6 — Training
+ 
+-**Status:** Scripts complete and smoke-tested. Full runs blocked - no GPU in this sandbox.
++**Status:** Scripts complete and smoke-tested. Full runs blocked - no GPU available for this pass.
+ **Goal:** Full runs on both protocols.
+ 
+ ---
+@@ -13,7 +13,7 @@
+ | Cover all three Phase 5 variants (tgfem, ablation (a), ablation (g)) from one script | Done |
+ | Evaluate on the held-out TEST split, not the val split Ultralytics reports during training | Done (Phase 3's own finding, reapplied) |
+ | Smoke-test the full script end to end | Done, CPU/toy scale |
+-| Actually run the report's schedule (150 epochs, batch 16, imgsz 640) for a real number | **Not done — no GPU here** |
++| Actually run the report's schedule (150 epochs, batch 16, imgsz 640) for a real number | **Not done — no GPU available yet** |
+ 
+ ---
+ 
+@@ -45,7 +45,7 @@ high-level API's `model.val(split="test", ...)`.
+ 
+ ---
+ 
+-## 3. Smoke test (this sandbox — CPU, 1 epoch, imgsz=64, batch=8)
++## 3. Smoke test (CPU, 1 epoch, imgsz=64, batch=8)
+ 
+ ```
+ Using 1434 train, 176 val images ...
+@@ -65,18 +65,18 @@ the same schema Phase 3 established. It is.
+ 
+ ---
+ 
+-## 4. ⚠ BLOCKED — no GPU in this sandbox
++## 4. ⚠ BLOCKED — no GPU available
+ 
+-This environment has no CUDA device (`torch.cuda.is_available()` is
+-`False`) and no route to `huggingface.co` (Phase 4 §5) — the two things a
+-real Phase 6 run needs that this sandbox categorically cannot provide,
+-regardless of how much time is spent here. The report's schedule (150
+-epochs, batch 16, imgsz 640, per baseline — Phase 3 §6) took **~2 hours per
+-run on an RTX 4050** for the much simpler Phase 3 baselines; TG-FEM's extra
+-compute (attention + a CLIP forward pass every step, even frozen) will cost
+-more, not less. Running that on CPU here would take, conservatively, many
+-times longer per run and there are at least three required runs (tgfem,
+-ablation (a), ablation (g)) before any ablation (d) variants.
++The machine used for Phases 4-6 so far has no CUDA device
++(`torch.cuda.is_available()` is `False`) and no route to `huggingface.co`
++(Phase 4 §5) — the two things a real Phase 6 run needs. The report's
++schedule (150 epochs, batch 16, imgsz 640, per baseline — Phase 3 §6) took
++**~2 hours per run on an RTX 4050** for the much simpler Phase 3 baselines;
++TG-FEM's extra compute (attention + a CLIP forward pass every step, even
++frozen) will cost more, not less. Running that on CPU would take,
++conservatively, many times longer per run, and there are at least three
++required runs (tgfem, ablation (a), ablation (g)) before any ablation (d)
++variants.
+ 
+ **What is ready to go, the moment a GPU + internet-connected machine is
+ available:**
+@@ -94,7 +94,7 @@ or, to run the priority ablations as a batch: `python scripts/run_ablations.py -
+ **Before trusting any resulting number:** check
+ `results/phase6_*.json`'s `"pretrained_clip_loaded"` field is `true`. If
+ it's `false`, the run still executed correctly but the text embeddings were
+-semantic noise (same caveat as every run in this sandbox).
++semantic noise (same caveat as every run so far).
+ 
+ ---
+ 
+@@ -115,7 +115,7 @@ scripts/train_tgfem.py   Phase 6 training script (tgfem / tgfem_identity / cbam_
+ | Evaluates on TEST split, separately from training-time val | Pass |
+ | Results schema consistent with Phase 3's `results/phase3_*.json` | Pass |
+ | Smoke-tested end to end (structure, not accuracy) | Pass |
+-| A real 150-epoch/GPU run produced | **Blocked — no GPU in this sandbox** |
++| A real 150-epoch/GPU run produced | **Blocked — no GPU available yet** |
+ 
+ **Phase 6 gate: PASSED structurally, blocked on compute for the actual
+ numbers.**
+@@ -131,7 +131,7 @@ numbers.**
+    without these runs existing.
+ 2. Confirm `pretrained_clip_loaded: true` in the resulting JSONs before
+    using them for anything.
+-3. GC10-DET and DeepCrack aren't present in this sandbox either (gitignored,
++3. GC10-DET and DeepCrack aren't present on this machine either (gitignored,
+    download separately per the README) — Phase 6 runs against `neu` only
+-   were exercised here; the `--dataset gc10` path is written but untested
++   were exercised so far; the `--dataset gc10` path is written but untested
+    end-to-end for lack of the data.
+diff --git a/requirements.txt b/requirements.txt
+index 69c1100c..a4079357 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -11,11 +11,11 @@
+ ultralytics==8.4.142
+ 
+ # Phase 4 - language branch (frozen CLIP text encoder + CoOp context tokens).
+-# Downloads ViT-B-32 "openai" weights from huggingface.co on first use; some
+-# sandboxes have no egress to that host, in which case
+-# src/tgfem/language.py::TextEncoder falls back to a randomly-initialised
+-# encoder of the same architecture and prints a loud warning - see that
+-# module's docstring before trusting any embedding-space result.
++# Downloads ViT-B-32 "openai" weights from huggingface.co on first use; if
++# that host isn't reachable, src/tgfem/language.py::TextEncoder falls back to
++# a randomly-initialised encoder of the same architecture and prints a loud
++# warning - see that module's docstring before trusting any embedding-space
++# result.
+ open_clip_torch==3.3.0
+ 
+ # Pulled in transitively by ultralytics, pinned here for reproducibility:
+diff --git a/scripts/run_ablations.py b/scripts/run_ablations.py
+index e82669ca..3ba0171d 100644
+--- a/scripts/run_ablations.py
++++ b/scripts/run_ablations.py
+@@ -16,7 +16,7 @@ subprocess (not an in-process import) so one variant's failure can't corrupt
+ another's CUDA/optimizer state.
+ 
+ Run (needs GPU + real CLIP weights - see language.py's module docstring for
+-why this sandbox can't do a real run):
++why this needs a GPU machine to actually run):
+     python scripts/run_ablations.py --priority-only
+     python scripts/run_ablations.py --dataset neu --protocol closed
+ """
+diff --git a/scripts/train_tgfem.py b/scripts/train_tgfem.py
+index 8b1a25ff..7558d392 100644
+--- a/scripts/train_tgfem.py
++++ b/scripts/train_tgfem.py
+@@ -21,8 +21,7 @@ Variants:
+ Ablation (d) (context-token count / hand-written vs learned prompts) is
+ --n-ctx and --tier on the `tgfem` variant, not a separate cfg.
+ 
+-Run (needs a real GPU + internet access to huggingface.co for this sandbox's
+-constraints not to apply - see language.py):
++Run (needs a real GPU + internet access to huggingface.co - see language.py):
+     python scripts/train_tgfem.py --variant tgfem --dataset neu --protocol closed
+     python scripts/train_tgfem.py --variant tgfem_identity --dataset neu --protocol closed
+     python scripts/train_tgfem.py --variant cbam_worlddetect --dataset neu --protocol closed
+diff --git a/scripts/train_tgfem_gate.py b/scripts/train_tgfem_gate.py
+index dc0ff9ea..cab6d384 100644
+--- a/scripts/train_tgfem_gate.py
++++ b/scripts/train_tgfem_gate.py
+@@ -14,13 +14,13 @@ Proves the plumbing, not accuracy:
+     6. the model survives a checkpoint round-trip with the dynamically
+        materialised TGFEM parameters intact
+ 
+-NOTE ON WHAT THIS DOES NOT PROVE: this sandbox has no GPU and (usually) no
+-route to huggingface.co, so `TextEncoder` almost certainly falls back to a
+-randomly-initialised CLIP tower (see language.py). Accuracy numbers from this
+-run are structurally meaningless twice over - 1-2 epochs on a slice of data,
+-AND a text encoder with no semantic content. Re-run on a machine with normal
+-internet + GPU access, with `encoder.pretrained_loaded == True`, before
+-treating any accuracy number as real. See phase-notes/PHASE-5.md.
++NOTE ON WHAT THIS DOES NOT PROVE: without a GPU or a route to huggingface.co,
++`TextEncoder` almost certainly falls back to a randomly-initialised CLIP
++tower (see language.py). Accuracy numbers from this run are structurally
++meaningless twice over - 1-2 epochs on a slice of data, AND a text encoder
++with no semantic content. Re-run on a machine with normal internet + GPU
++access, with `encoder.pretrained_loaded == True`, before treating any
++accuracy number as real. See phase-notes/PHASE-5.md.
+ 
+ Run:
+     python scripts/train_tgfem_gate.py
+diff --git a/src/tgfem/language.py b/src/tgfem/language.py
+index adf8a4b3..f535ad18 100644
+--- a/src/tgfem/language.py
++++ b/src/tgfem/language.py
+@@ -10,9 +10,9 @@ before each forward pass.
+ NETWORK NOTE - READ BEFORE TRUSTING ANY EMBEDDING-SPACE RESULT
+ ----------------------------------------------------------------
+ Loading real CLIP weights requires reaching huggingface.co (open_clip's
+-weight host). Some sandboxes have no general internet egress and cannot
+-reach it - this code was itself developed in one. When the download fails,
+-`TextEncoder` falls back to a **randomly-initialised** transformer of the
++weight host). Some machines have no route to it - this code was itself
++developed on one. When the download fails, `TextEncoder` falls back to a
++**randomly-initialised** transformer of the
+ identical open_clip ViT-B-32 architecture and output dimensionality, and
+ prints a loud warning instead of failing silently.
+ 
+-- 
+2.43.0
+

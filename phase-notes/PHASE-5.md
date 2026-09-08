@@ -193,19 +193,19 @@ python scripts/train_tgfem_gate.py --epochs 2 --fraction 0.2 --n-ctx 4
 | Boxes emitted at the far end | Pass |
 
 **Phase 5 gate: PASSED structurally.** Same caveat as Phase 4: no semantic
-content in any embedding produced by this sandbox (§5 there) and no GPU
-here, so none of the above validates *accuracy* — only that the whole
+content in any embedding produced so far (§5 there) and no GPU used for
+this pass, so none of the above validates *accuracy* — only that the whole
 pipeline is correct and trainable. Phase 6 needs real compute.
 
 ---
 
 ## 8. Carried forward
 
-1. **This sandbox has no GPU.** All verification above ran on CPU, at toy
-   scale (tiny fraction, small imgsz, 1-2 epochs). `scripts/train_tgfem.py`
-   (Phase 6) is written for the report's real schedule (150 epochs,
-   batch 16, imgsz 640) but was only smoke-tested at toy scale here — see
-   `phase-notes/PHASE-6.md`.
+1. **No GPU was available for this pass.** All verification above ran on
+   CPU, at toy scale (tiny fraction, small imgsz, 1-2 epochs).
+   `scripts/train_tgfem.py` (Phase 6) is written for the report's real
+   schedule (150 epochs, batch 16, imgsz 640) but was only smoke-tested at
+   toy scale so far — see `phase-notes/PHASE-6.md`.
 2. Ablation (g)'s CBAM+WorldDetect config exists but has never been trained
    — no results to compare against `tgfem` yet.
 3. `train_tgfem.py`'s test-split evaluation uses a fresh `DetectionValidator`

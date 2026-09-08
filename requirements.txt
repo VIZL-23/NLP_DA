@@ -11,11 +11,11 @@
 ultralytics==8.4.142
 
 # Phase 4 - language branch (frozen CLIP text encoder + CoOp context tokens).
-# Downloads ViT-B-32 "openai" weights from huggingface.co on first use; some
-# sandboxes have no egress to that host, in which case
-# src/tgfem/language.py::TextEncoder falls back to a randomly-initialised
-# encoder of the same architecture and prints a loud warning - see that
-# module's docstring before trusting any embedding-space result.
+# Downloads ViT-B-32 "openai" weights from huggingface.co on first use; if
+# that host isn't reachable, src/tgfem/language.py::TextEncoder falls back to
+# a randomly-initialised encoder of the same architecture and prints a loud
+# warning - see that module's docstring before trusting any embedding-space
+# result.
 open_clip_torch==3.3.0
 
 # Pulled in transitively by ultralytics, pinned here for reproducibility:

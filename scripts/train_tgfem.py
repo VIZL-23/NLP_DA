@@ -21,8 +21,7 @@ Variants:
 Ablation (d) (context-token count / hand-written vs learned prompts) is
 --n-ctx and --tier on the `tgfem` variant, not a separate cfg.
 
-Run (needs a real GPU + internet access to huggingface.co for this sandbox's
-constraints not to apply - see language.py):
+Run (needs a real GPU + internet access to huggingface.co - see language.py):
     python scripts/train_tgfem.py --variant tgfem --dataset neu --protocol closed
     python scripts/train_tgfem.py --variant tgfem_identity --dataset neu --protocol closed
     python scripts/train_tgfem.py --variant cbam_worlddetect --dataset neu --protocol closed

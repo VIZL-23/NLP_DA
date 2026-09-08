@@ -83,23 +83,22 @@ observable once the language branch was wired into an actual training loop.
 
 ## 5. ⚠ NETWORK CONSTRAINT — read before trusting any embedding
 
-This sandbox's outbound egress is allowlisted to a small set of hosts
-(pypi, npm, a few others) and **does not include `huggingface.co`**, which
-is where `open_clip` fetches `ViT-B-32`'s `openai` weights. Every attempt
-here fell back to `TextEncoder`'s randomly-initialised path:
+Development happened on a machine without a route to `huggingface.co`,
+which is where `open_clip` fetches `ViT-B-32`'s `openai` weights. Every
+attempt there fell back to `TextEncoder`'s randomly-initialised path:
 
 ```
 Could not download real CLIP weights (... 403 Forbidden).
 Falling back to a RANDOMLY-INITIALISED ViT-B-32 text tower.
 ```
 
-`encoder.pretrained_loaded` is `False` in every run this phase produced.
-The **architecture and gradient flow are verified correct** — a random
-encoder still has a real, differentiable forward pass, so shape/gradient/
-checkpoint checks are meaningful — but **no embedding produced in this
-sandbox carries any semantic content**. On the original dev machine (which
-has normal internet access, per `phase-notes/PHASE-0.md`), this should just
-work: `python scripts/train_tgfem_gate.py` and check
+`encoder.pretrained_loaded` is `False` in every run this phase produced so
+far. The **architecture and gradient flow are verified correct** — a
+random encoder still has a real, differentiable forward pass, so
+shape/gradient/checkpoint checks are meaningful — but **no embedding
+produced so far carries any semantic content**. On the primary dev machine
+(which has normal internet access, per `phase-notes/PHASE-0.md`), this
+should just work: `python scripts/train_tgfem_gate.py` and check
 `pretrained CLIP : True` in its output.
 
 ---
@@ -121,7 +120,7 @@ requirements.txt          + open_clip_torch==3.3.0
 | Learnable context tokens, gradient reaches them | Pass |
 | M=0 ablation arm reproduces frozen encoding exactly | Pass |
 | Hook survives Ultralytics' pickle-based checkpointing | Pass |
-| Real (non-random) CLIP weights loaded | **Blocked** — no route to huggingface.co in this sandbox |
+| Real (non-random) CLIP weights loaded | **Blocked** — no route to huggingface.co on the dev machine used for this pass |
 
 **Phase 4 gate: PASSED structurally.** Re-run on a machine with real
 internet access before trusting any embedding-space result — see §5.

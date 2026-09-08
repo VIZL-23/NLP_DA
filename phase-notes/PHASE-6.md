@@ -1,6 +1,6 @@
 # Phase 6 — Training
 
-**Status:** Scripts complete and smoke-tested. Full runs blocked - no GPU in this sandbox.
+**Status:** Scripts complete and smoke-tested. Full runs blocked - no GPU available for this pass.
 **Goal:** Full runs on both protocols.
 
 ---
@@ -13,7 +13,7 @@
 | Cover all three Phase 5 variants (tgfem, ablation (a), ablation (g)) from one script | Done |
 | Evaluate on the held-out TEST split, not the val split Ultralytics reports during training | Done (Phase 3's own finding, reapplied) |
 | Smoke-test the full script end to end | Done, CPU/toy scale |
-| Actually run the report's schedule (150 epochs, batch 16, imgsz 640) for a real number | **Not done — no GPU here** |
+| Actually run the report's schedule (150 epochs, batch 16, imgsz 640) for a real number | **Not done — no GPU available yet** |
 
 ---
 
@@ -45,7 +45,7 @@ high-level API's `model.val(split="test", ...)`.
 
 ---
 
-## 3. Smoke test (this sandbox — CPU, 1 epoch, imgsz=64, batch=8)
+## 3. Smoke test (CPU, 1 epoch, imgsz=64, batch=8)
 
 ```
 Using 1434 train, 176 val images ...
@@ -65,18 +65,18 @@ the same schema Phase 3 established. It is.
 
 ---
 
-## 4. ⚠ BLOCKED — no GPU in this sandbox
+## 4. ⚠ BLOCKED — no GPU available
 
-This environment has no CUDA device (`torch.cuda.is_available()` is
-`False`) and no route to `huggingface.co` (Phase 4 §5) — the two things a
-real Phase 6 run needs that this sandbox categorically cannot provide,
-regardless of how much time is spent here. The report's schedule (150
-epochs, batch 16, imgsz 640, per baseline — Phase 3 §6) took **~2 hours per
-run on an RTX 4050** for the much simpler Phase 3 baselines; TG-FEM's extra
-compute (attention + a CLIP forward pass every step, even frozen) will cost
-more, not less. Running that on CPU here would take, conservatively, many
-times longer per run and there are at least three required runs (tgfem,
-ablation (a), ablation (g)) before any ablation (d) variants.
+The machine used for Phases 4-6 so far has no CUDA device
+(`torch.cuda.is_available()` is `False`) and no route to `huggingface.co`
+(Phase 4 §5) — the two things a real Phase 6 run needs. The report's
+schedule (150 epochs, batch 16, imgsz 640, per baseline — Phase 3 §6) took
+**~2 hours per run on an RTX 4050** for the much simpler Phase 3 baselines;
+TG-FEM's extra compute (attention + a CLIP forward pass every step, even
+frozen) will cost more, not less. Running that on CPU would take,
+conservatively, many times longer per run, and there are at least three
+required runs (tgfem, ablation (a), ablation (g)) before any ablation (d)
+variants.
 
 **What is ready to go, the moment a GPU + internet-connected machine is
 available:**
@@ -94,7 +94,7 @@ or, to run the priority ablations as a batch: `python scripts/run_ablations.py -
 **Before trusting any resulting number:** check
 `results/phase6_*.json`'s `"pretrained_clip_loaded"` field is `true`. If
 it's `false`, the run still executed correctly but the text embeddings were
-semantic noise (same caveat as every run in this sandbox).
+semantic noise (same caveat as every run so far).
 
 ---
 
@@ -115,7 +115,7 @@ scripts/train_tgfem.py   Phase 6 training script (tgfem / tgfem_identity / cbam_
 | Evaluates on TEST split, separately from training-time val | Pass |
 | Results schema consistent with Phase 3's `results/phase3_*.json` | Pass |
 | Smoke-tested end to end (structure, not accuracy) | Pass |
-| A real 150-epoch/GPU run produced | **Blocked — no GPU in this sandbox** |
+| A real 150-epoch/GPU run produced | **Blocked — no GPU available yet** |
 
 **Phase 6 gate: PASSED structurally, blocked on compute for the actual
 numbers.**
@@ -131,7 +131,7 @@ numbers.**
    without these runs existing.
 2. Confirm `pretrained_clip_loaded: true` in the resulting JSONs before
    using them for anything.
-3. GC10-DET and DeepCrack aren't present in this sandbox either (gitignored,
+3. GC10-DET and DeepCrack aren't present on this machine either (gitignored,
    download separately per the README) — Phase 6 runs against `neu` only
-   were exercised here; the `--dataset gc10` path is written but untested
+   were exercised so far; the `--dataset gc10` path is written but untested
    end-to-end for lack of the data.

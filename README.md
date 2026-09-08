@@ -81,16 +81,16 @@ before starting a phase.
 
 | # | Phase | Status | What it does |
 |---|---|---|---|
-| **0** | Foundation | ✅ **Done** | venv + CUDA verified, Ultralytics installed, datasets audited, repo hygiene |
-| **1** | Data pipeline | ✅ **Done** | VOC→YOLO conversion, both split protocols, 60-phrase text corpus |
-| **2** | Walking skeleton | ✅ **Done** | TG-FEM registered + placed at P3/P4/P5, trains end to end, boxes emitted |
-| **1b** | GC10-DET + DeepCrack | ✅ **Done** | Both converted; corpus extended to 170 phrases / 17 classes |
-| **3** | Baselines | ✅ **Done** | stock 0.7717 · CBAM 0.7372 · YOLO-World-S 0.0394 |
-| **4** | Language branch | ✅ **Done**\* | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
-| **5** | TG-FEM | ✅ **Done**\* | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
-| **6** | Training | 🚧 **Scripted, not yet run** | `scripts/train_tgfem.py` is written and passes a structural smoke test; a real 150-epoch run needs a GPU |
-| **7** | Evaluation & ablations | 🚧 **Scripted, not yet run** | `scripts/run_ablations.py` + `scripts/eval_tgfem.py`; depends on Phase 6's runs existing |
-| **8** | Report & demo | 🚧 **Scaffolded** | `scripts/demo.py` works end to end; needs a trained checkpoint from Phase 6 to be useful |
+| **0** | Foundation | **Done** | venv + CUDA verified, Ultralytics installed, datasets audited, repo hygiene |
+| **1** | Data pipeline | **Done** | VOC→YOLO conversion, both split protocols, 60-phrase text corpus |
+| **2** | Walking skeleton | **Done** | TG-FEM registered + placed at P3/P4/P5, trains end to end, boxes emitted |
+| **1b** | GC10-DET + DeepCrack | **Done** | Both converted; corpus extended to 170 phrases / 17 classes |
+| **3** | Baselines | **Done** | stock 0.7717 · CBAM 0.7372 · YOLO-World-S 0.0394 |
+| **4** | Language branch | **Done**\* | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
+| **5** | TG-FEM | **Done**\* | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
+| **6** | Training | **Scripted, not yet run** | `scripts/train_tgfem.py` is written and passes a structural smoke test; a real 150-epoch run needs a GPU |
+| **7** | Evaluation & ablations | **Scripted, not yet run** | `scripts/run_ablations.py` + `scripts/eval_tgfem.py`; depends on Phase 6's runs existing |
+| **8** | Report & demo | **Scaffolded** | `scripts/demo.py` works end to end; needs a trained checkpoint from Phase 6 to be useful |
 
 \* **Structurally verified, not numerically yet.** Phases 4 and 5 were built
 and tested on a machine with no GPU and no live connection to CLIP's weight

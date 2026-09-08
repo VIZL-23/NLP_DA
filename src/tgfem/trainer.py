@@ -14,7 +14,9 @@ optimiser.
 
 How the pieces connect:
     1. `get_model` builds the DetectionModel from the YAML as usual, then
-       locates every `TGFEM` layer in it.
+       locates every `TGFEM` layer in it (zero is valid - ablation (g)'s
+       CBAM control uses this same trainer with no TGFEM layers at all,
+       since it still needs the WorldDetect head fed).
     2. A `TextConditioner` (see `language.py`) is built once and its
        `attach()` registers a `forward_pre_hook` on the model: every forward
        call recomputes `T = ContextTokenLearner(class_texts)` and pushes it
@@ -37,6 +39,8 @@ from typing import Any
 
 from ultralytics.cfg import DEFAULT_CFG
 from ultralytics.models.yolo.detect import DetectionTrainer
+
+from ultralytics.nn.modules import WorldDetect
 
 from .detection_model import TGFEMModel
 from .language import TextConditioner
@@ -73,10 +77,16 @@ class TGFEMTrainer(DetectionTrainer):
             model.load(weights)
 
         tgfem_layers = [m for m in model.model if isinstance(m, TGFEM)]
-        if not tgfem_layers:
+        # TGFEM layers are the module ablation (a) toggles to identity and
+        # ablation (g) replaces with CBAM entirely - zero is a legitimate
+        # count for cbam_worlddetect (README, ablation (g): same head, only
+        # the gate source differs). What every variant this trainer runs
+        # DOES need is the WorldDetect head, since that's what the language
+        # branch actually threads text into (see module docstring).
+        if not isinstance(model.model[-1], WorldDetect):
             raise RuntimeError(
-                "TGFEMTrainer was asked to train a model with no TGFEM layers in it - "
-                "wrong cfg? (expected cfg/yolo11-tgfem*.yaml)"
+                "TGFEMTrainer was asked to train a model with no WorldDetect head - "
+                "wrong cfg? (expected cfg/yolo11-tgfem*.yaml or yolo11-cbam-worlddetect.yaml)"
             )
 
         device = next(model.parameters()).device

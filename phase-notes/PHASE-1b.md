@@ -75,7 +75,7 @@ Must be renamed `neu_inclusion` if the two are ever merged into one run.
 
 ---
 
-## 3. ⭐ GC10-DET rescues the report's constraint (ii)
+## 3. GC10-DET rescues the report's constraint (ii)
 
 Phase 1 found that the report's claim — defects "occupy under 2% of image
 pixels, exhibit aspect ratios beyond 10:1" — is **false for NEU-DET**. GC10-DET
@@ -162,7 +162,7 @@ with NEU-DET's.
 > **Report correction:** §4.1 says "a corpus of approximately 60 defect
 > descriptions". It is now **170**. The 60-figure needs updating.
 
-> **⚠ REVIEW STILL NEEDED.** Wording was authored from general metallurgical
+> **REVIEW STILL NEEDED.** Wording was authored from general metallurgical
 > description, not an inspection manual. The GC10 terms (`silk_spot`,
 > `waist_folding`, `rolled_pit`) are translations of Chinese industry terms and
 > deserve particular scrutiny, since gap G4 rests on this corpus being credible.

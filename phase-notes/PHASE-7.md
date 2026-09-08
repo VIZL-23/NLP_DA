@@ -103,7 +103,7 @@ nothing else to run yet.
 
 ---
 
-## 4a. ⭐ A real bug, found by actually running the dispatcher
+## 4a. A real bug, found by actually running the dispatcher
 
 `run_ablations.py --priority-only` had never been executed before this pass
 - only its dependency `train_tgfem.py` had. Running all 6 priority variants

@@ -65,7 +65,7 @@ the same schema Phase 3 established. It is.
 
 ---
 
-## 4. ⚠ BLOCKED — no GPU available
+## 4. BLOCKED — no GPU available
 
 The machine used for Phases 4-6 so far has no CUDA device
 (`torch.cuda.is_available()` is `False`) and no route to `huggingface.co`

@@ -7,8 +7,9 @@ Usage (must be called before building any model whose YAML names TGFEM):
 """
 
 from .module import TGFEM
+from .language import TextConditioner, TextEncoder, ContextTokenLearner
 
-__all__ = ["TGFEM", "register"]
+__all__ = ["TGFEM", "register", "TextConditioner", "TextEncoder", "ContextTokenLearner"]
 
 _REGISTERED = False
 

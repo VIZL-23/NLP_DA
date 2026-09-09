@@ -28,6 +28,7 @@ a machine with normal internet access to get real CLIP weights before Phase
 
 from __future__ import annotations
 
+import random
 import warnings
 from dataclasses import dataclass
 
@@ -265,18 +266,41 @@ class TextConditioner:
     no patch - matching the project's Phase 2 registration approach.
     """
 
-    def __init__(self, class_texts: list[str], n_ctx: int = 8, device: str = "cpu"):
+    def __init__(
+        self,
+        class_texts: list[str],
+        n_ctx: int = 8,
+        device: str = "cpu",
+        phrase_pools: list[list[str]] | None = None,
+        seed: int = 42,
+    ):
         self.class_texts = list(class_texts)
         self.encoder = TextEncoder(device=device)
         self.learner = ContextTokenLearner(self.encoder, n_ctx=n_ctx)
         self.last_T: torch.Tensor | None = None
 
+        # PHRASE AUGMENTATION.
+        # With `phrase_pools` set, each TRAINING forward pass draws a fresh
+        # phrasing per class instead of reusing one fixed string for the whole
+        # run. Without it, the model sees the identical 6 strings for 150
+        # epochs and keys on those exact strings rather than on their meaning:
+        # probing a run trained that way (scripts/probe_wording.py) gave 0.639
+        # for the trained phrase, 0.561 for a one-word change, and 0.000 for
+        # any real rephrasing.
+        #
+        # Sampling is TRAINING-ONLY. Evaluation must be deterministic and
+        # comparable across runs, so eval falls back to `class_texts` - see
+        # __call__, which switches on `module.training`.
+        self.phrase_pools = phrase_pools
+        self._rng = random.Random(seed)
+
     def parameters(self):
         """Trainable parameters to hand to the optimiser (empty list if n_ctx=0)."""
         return [] if self.learner.ctx is None else [self.learner.ctx]
 
-    def encode(self) -> torch.Tensor:
-        self.last_T = self.learner(self.class_texts)
+    def encode(self, texts: list[str] | None = None) -> torch.Tensor:
+        """Encode `texts`, defaulting to the fixed `class_texts` vocabulary."""
+        self.last_T = self.learner(texts if texts is not None else self.class_texts)
         return self.last_T
 
     def __call__(self, module: nn.Module, _args, _kwargs=None):
@@ -285,7 +309,17 @@ class TextConditioner:
         `torch.save` (pickle), including its `_forward_pre_hooks`, and a
         closure captured over local variables cannot be pickled. A bound
         method of this (picklable) object can."""
-        T = self.encode()
+        texts = self.class_texts
+        if self.phrase_pools is not None and getattr(module, "training", False):
+            # Resample per forward pass, training only (see __init__).
+            # Deliberately a LOCAL - `self.class_texts` is never mutated, for
+            # two reasons: evaluation must stay on the fixed --tier phrase so
+            # runs remain comparable, and scripts/demo.py injects arbitrary
+            # queries by assigning to `class_texts`, which a training-time
+            # overwrite would silently clobber.
+            texts = [self._rng.choice(pool) for pool in self.phrase_pools]
+
+        T = self.encode(texts)
         for layer in self._tgfem_layers:
             layer.txt = T
         if hasattr(module, "txt_feats"):

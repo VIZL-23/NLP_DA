@@ -125,3 +125,36 @@ def class_texts_for(classes: list[str], tier: str = "natural", corpus: dict | No
             text = next(d["text"] for d in descs if d["tier"] == "bare")
         texts.append(text)
     return texts
+
+
+def class_phrase_pools(
+    classes: list[str],
+    corpus: dict | None = None,
+    tiers: list[str] | None = None,
+) -> list[list[str]]:
+    """ALL phrases per class, in class-index order - the pool for phrase augmentation.
+
+    `class_texts_for` fixes ONE phrase per class for a whole run, which is what
+    every run up to Phase 6 used. Probing that model (scripts/probe_wording.py)
+    showed the text interface had keyed on those exact strings: the trained
+    phrase scored 0.639, a one-word change ("steel" -> "metal") 0.561, and any
+    real rephrasing 0.000. A model shown one phrasing per class for 150 epochs
+    is never pressured to generalise across wording, so it doesn't - which also
+    explains why it cannot handle an unseen class's phrasing.
+
+    Returning the pool lets the training loop resample per batch instead, so
+    each class is seen through all ~10 of its corpus phrasings.
+
+    Args:
+        classes: class names, in the dataset YAML's index order.
+        tiers: restrict to these tiers (default: all).
+    """
+    corpus = corpus or load_corpus()
+    pools = []
+    for c in classes:
+        descs = corpus["classes"][c]["descriptions"]
+        texts = [d["text"] for d in descs if tiers is None or d["tier"] in tiers]
+        if not texts:
+            raise ValueError(f"class {c!r} has no phrases for tiers={tiers}")
+        pools.append(texts)
+    return pools

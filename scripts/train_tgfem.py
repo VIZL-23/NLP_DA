@@ -39,7 +39,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from tgfem import register  # noqa: E402
-from tgfem.data import class_texts_for  # noqa: E402
+from tgfem.data import class_phrase_pools, class_texts_for  # noqa: E402
 
 RESULTS = REPO_ROOT / "results"
 
@@ -64,6 +64,11 @@ def main():
     ap.add_argument("--protocol", choices=["closed", "openvocab"], default="closed")
     ap.add_argument("--tier", choices=["bare", "natural", "visual", "material", "alias"], default="natural",
                      help="ablation (d): which phrase tier forms the fixed training vocabulary")
+    ap.add_argument("--phrase-aug", action="store_true",
+                    help="ablation (d), robustness arm: resample a phrasing per class "
+                         "every TRAINING step from the corpus (~10 per class) instead of "
+                         "fixing one for the whole run. Evaluation stays deterministic "
+                         "on --tier. See scripts/probe_wording.py for why.")
     ap.add_argument("--n-ctx", type=int, default=8, help="ablation (d): learnable context tokens (0 = hand-written prompts only)")
     ap.add_argument("--epochs", type=int, default=150, help="report section 4.4 specifies 150")
     ap.add_argument("--batch", type=int, default=16)
@@ -86,10 +91,13 @@ def main():
         )
     names = [v for _, v in sorted(yaml.safe_load(data_path.read_text())["names"].items())]
     class_texts = class_texts_for(names, tier=args.tier)
+    phrase_pools = class_phrase_pools(names) if args.phrase_aug else None
 
     run_name = f"phase6_{args.dataset}_{args.protocol}_{args.variant}"
     if args.n_ctx != 8:
         run_name += f"_nctx{args.n_ctx}"
+    if args.phrase_aug:
+        run_name += "_phraseaug"
     if args.tier != "natural":
         run_name += f"_{args.tier}"
 
@@ -98,7 +106,9 @@ def main():
     print("=" * 62)
     print(f"config     : {CFG[args.variant].name}")
     print(f"data       : {data_path.name}")
-    print(f"vocabulary : {len(class_texts)} classes, tier={args.tier}, n_ctx={args.n_ctx}")
+    print(f"vocabulary : {len(class_texts)} classes, tier={args.tier}, n_ctx={args.n_ctx}, "
+          f"phrase_aug={args.phrase_aug}"
+          + (f" ({sum(len(p) for p in phrase_pools)} phrases in pool)" if phrase_pools else ""))
     for c, t in zip(names, class_texts):
         print(f"  {c:<20} -> {t!r}")
     print(f"epochs     : {args.epochs}   batch: {args.batch}   imgsz: {args.imgsz}")
@@ -123,6 +133,7 @@ def main():
             "val": True,
             "class_texts": class_texts,
             "n_ctx": args.n_ctx,
+            "phrase_pools": phrase_pools,
         }
     )
     trainer.train()
@@ -156,6 +167,7 @@ def main():
         "protocol": args.protocol,
         "config": CFG[args.variant].name,
         "n_ctx": args.n_ctx,
+        "phrase_aug": args.phrase_aug,
         "tier": args.tier,
         "pretrained_clip_loaded": trainer.text_conditioner.encoder.pretrained_loaded,
         "epochs": args.epochs,

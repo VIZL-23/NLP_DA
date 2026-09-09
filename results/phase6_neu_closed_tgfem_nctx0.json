@@ -1,0 +1,31 @@
+{
+  "variant": "tgfem",
+  "dataset": "neu",
+  "protocol": "closed",
+  "config": "yolo11-tgfem.yaml",
+  "n_ctx": 0,
+  "tier": "natural",
+  "pretrained_clip_loaded": true,
+  "epochs": 150,
+  "batch": 16,
+  "imgsz": 640,
+  "seed": 42,
+  "mAP50": 0.72142,
+  "mAP50_95": 0.38477,
+  "precision": 0.68236,
+  "recall": 0.67236,
+  "per_class_AP50": {
+    "crazing": 0.4105,
+    "inclusion": 0.75838,
+    "patches": 0.88815,
+    "pitted_surface": 0.83637,
+    "rolled-in_scale": 0.53111,
+    "scratches": 0.90398
+  },
+  "speed_ms": {
+    "preprocess": 1.03,
+    "inference": 19.58,
+    "loss": 0.0,
+    "postprocess": 0.88
+  }
+}

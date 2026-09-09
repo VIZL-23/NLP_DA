@@ -62,6 +62,11 @@ class TGFEMTrainer(DetectionTrainer):
         overrides = dict(overrides or {})
         self.class_texts: list[str] = overrides.pop("class_texts")
         self.n_ctx: int = overrides.pop("n_ctx", 8)
+        # Optional list[list[str]] - all corpus phrasings per class, in class
+        # index order. When present the language branch resamples a phrasing
+        # per training step (see TextConditioner). None = the pre-Phase-7
+        # behaviour of one fixed phrase per class for the whole run.
+        self.phrase_pools: list[list[str]] | None = overrides.pop("phrase_pools", None)
         self.text_conditioner: TextConditioner | None = None
         self._hook_handle = None
         super().__init__(cfg=cfg, overrides=overrides, _callbacks=_callbacks)
@@ -94,7 +99,12 @@ class TGFEMTrainer(DetectionTrainer):
             )
 
         device = next(model.parameters()).device
-        self.text_conditioner = TextConditioner(self.class_texts, n_ctx=self.n_ctx, device=str(device))
+        self.text_conditioner = TextConditioner(
+            self.class_texts,
+            n_ctx=self.n_ctx,
+            device=str(device),
+            phrase_pools=self.phrase_pools,
+        )
         self._hook_handle = self.text_conditioner.attach(model, tgfem_layers)
 
         if self.text_conditioner.learner.ctx is not None:

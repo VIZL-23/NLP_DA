@@ -14,7 +14,9 @@ optimiser.
 
 How the pieces connect:
     1. `get_model` builds the DetectionModel from the YAML as usual, then
-       locates every `TGFEM` layer in it.
+       locates every `TGFEM` layer in it (zero is valid - ablation (g)'s
+       CBAM control uses this same trainer with no TGFEM layers at all,
+       since it still needs the WorldDetect head fed).
     2. A `TextConditioner` (see `language.py`) is built once and its
        `attach()` registers a `forward_pre_hook` on the model: every forward
        call recomputes `T = ContextTokenLearner(class_texts)` and pushes it
@@ -33,10 +35,12 @@ How the pieces connect:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
+from torch import nn
 from ultralytics.cfg import DEFAULT_CFG
 from ultralytics.models.yolo.detect import DetectionTrainer
+from ultralytics.nn.modules import WorldDetect
 
 from .detection_model import TGFEMModel
 from .language import TextConditioner
@@ -72,27 +76,21 @@ class TGFEMTrainer(DetectionTrainer):
         if weights:
             model.load(weights)
 
-        tgfem_layers = [m for m in model.model if isinstance(m, TGFEM)]
-
-        # A model with NO TGFEM layers is legitimate: ablation (g)'s control is
-        # CBAM + WorldDetect (cfg/yolo11-cbam-worlddetect.yaml). It still needs
-        # the language branch, because WorldDetect classifies by comparing
-        # region embeddings against `txt_feats` - it just has no text-gated
-        # attention. Requiring TGFEM layers here made the one comparison the
-        # paper actually rests on impossible to run.
-        #
-        # What must be rejected is a model that needs no text at all (a stock
-        # `Detect` head and no TGFEM) - that belongs in train_baseline.py,
-        # where Phase 3's stock/cbam runs live.
-        from ultralytics.nn.modules.head import WorldDetect
-
-        head = model.model[-1]
-        needs_text = isinstance(head, WorldDetect)
-        if not tgfem_layers and not needs_text:
+        # BaseModel.model is untyped upstream (mypy infers a Tensor|Module
+        # union from unrelated call sites in Ultralytics' own code) - it is
+        # always the parse_model-built nn.Sequential at runtime.
+        layers = cast(nn.Sequential, model.model)
+        tgfem_layers: list[nn.Module] = [m for m in layers if isinstance(m, TGFEM)]
+        # TGFEM layers are the module ablation (a) toggles to identity and
+        # ablation (g) replaces with CBAM entirely - zero is a legitimate
+        # count for cbam_worlddetect (README, ablation (g): same head, only
+        # the gate source differs). What every variant this trainer runs
+        # DOES need is the WorldDetect head, since that's what the language
+        # branch actually threads text into (see module docstring).
+        if not isinstance(layers[-1], WorldDetect):
             raise RuntimeError(
-                "TGFEMTrainer was given a model with neither TGFEM layers nor a "
-                "WorldDetect head, so nothing in it consumes text. Use "
-                "scripts/train_baseline.py for text-free variants."
+                "TGFEMTrainer was asked to train a model with no WorldDetect head - "
+                "wrong cfg? (expected cfg/yolo11-tgfem*.yaml or yolo11-cbam-worlddetect.yaml)"
             )
 
         device = next(model.parameters()).device
@@ -110,6 +108,10 @@ class TGFEMTrainer(DetectionTrainer):
 
     def preprocess_batch(self, batch: dict[str, Any]) -> dict[str, Any]:
         batch = super().preprocess_batch(batch)
+        # get_model() always runs (and sets this) before any batch is
+        # preprocessed - DetectionTrainer._setup_train() calls setup_model()
+        # ahead of building the dataloaders that produce batches.
+        assert self.text_conditioner is not None
         # Keep the text branch on the same device as the batch/model - a
         # no-op after the first call, cheap to check every time.
         device = batch["img"].device

@@ -81,7 +81,7 @@ observable once the language branch was wired into an actual training loop.
 
 ---
 
-## 5. ⚠ NETWORK CONSTRAINT — read before trusting any embedding
+## 5. NETWORK CONSTRAINT — read before trusting any embedding
 
 Development happened on a machine without a route to `huggingface.co`,
 which is where `open_clip` fetches `ViT-B-32`'s `openai` weights. Every

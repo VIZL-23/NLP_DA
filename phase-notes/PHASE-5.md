@@ -64,7 +64,7 @@ engages, so it isn't mistaken for something wrong.
 
 ---
 
-## 3. ⭐ TG-FEM alone does not make the model open-vocabulary
+## 3. TG-FEM alone does not make the model open-vocabulary
 
 The README's component table lists five pieces, including a
 **region-text contrastive head** that "labels each box by nearest text

@@ -81,27 +81,31 @@ before starting a phase.
 
 | # | Phase | Status | What it does |
 |---|---|---|---|
-| **0** | Foundation | **Done** | venv + CUDA verified, Ultralytics installed, datasets audited, repo hygiene |
-| **1** | Data pipeline | **Done** | VOC→YOLO conversion, both split protocols, 60-phrase text corpus |
-| **2** | Walking skeleton | **Done** | TG-FEM registered + placed at P3/P4/P5, trains end to end, boxes emitted |
-| **1b** | GC10-DET + DeepCrack | **Done** | Both converted; corpus extended to 170 phrases / 17 classes |
-| **3** | Baselines | **Done** | stock 0.7717 · CBAM 0.7372 · YOLO-World-S 0.0394 |
-| **4** | Language branch | **Done**\* | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
-| **5** | TG-FEM | **Done**\* | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
-| **6** | Training | **Done** | 5 runs on GPU with real CLIP. **Result is negative** - see below |
-| **7** | Evaluation & ablations | **Scripted, not yet run** | `scripts/run_ablations.py` + `scripts/eval_tgfem.py`; depends on Phase 6's runs existing |
-| **8** | Report & demo | **Scaffolded** | `scripts/demo.py` works end to end; needs a trained checkpoint from Phase 6 to be useful |
+| **0** | Foundation | Done | venv + CUDA verified, Ultralytics installed, datasets audited, repo hygiene |
+| **1** | Data pipeline | Done | VOC→YOLO conversion, both split protocols, 60-phrase text corpus |
+| **2** | Walking skeleton | Done | TG-FEM registered + placed at P3/P4/P5, trains end to end, boxes emitted |
+| **1b** | GC10-DET + DeepCrack | Done | Both converted; corpus extended to 170 phrases / 17 classes |
+| **3** | Baselines | Done | stock 0.7717 · CBAM 0.7372 · YOLO-World-S 0.0394 |
+| **4** | Language branch | Done | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
+| **5** | TG-FEM | Done | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
+| **6** | Training | **Done, on GPU, real CLIP** | 5 runs at the report's schedule. `pretrained_clip_loaded: true` throughout. **The result is negative** — see below |
+| **7** | Evaluation & ablations | Partly done | Ablations (a) and (g) run for real, plus the negative control (`eval_tgfem.py`). `run_ablations.py` sweep, ablation (d), GC10 and DeepCrack OOD still unrun |
+| **8** | Report & demo | Scaffolded | `scripts/demo.py` verified end to end; the report itself needs restructuring around the Phase 6 result |
 
-\* **Structurally verified, not numerically yet.** Phases 4 and 5 were built
-and tested on a machine with no GPU and no live connection to CLIP's weight
-host, so every check that passed (module shapes, gradient flow into the
-learnable context tokens, checkpoint save/load) confirms the code is wired
-correctly — **none of it is an accuracy number.** `TextEncoder` (in
-`src/tgfem/language.py`) exposes `pretrained_loaded`; if it's `False`, the
-run used a randomly-initialised text tower instead of real CLIP weights.
-Check it's `True` before trusting anything past Phase 3. See
-`phase-notes/PHASE-4.md` §5 and `PHASE-6.md` §4 for what's left and the
-commands to run once a GPU is available.
+\* **Verified by actually running the code, not numerically yet.** All of
+Phases 4-8 have been built and executed on a machine with no GPU and no live
+connection to CLIP's weight host - every model variant, both closed and
+open-vocab protocols, the ablation dispatcher, and both eval scripts have
+been run end to end and produce correct output. Two real bugs were found and
+fixed this way (a crash in the `cbam_worlddetect` ablation, a dead CLI flag)
+- neither would have been caught by code review alone. None of this is an
+accuracy number, though: `TextEncoder` (in `src/tgfem/language.py`) exposes
+`pretrained_loaded`; if it's `False`, the run used a randomly-initialised
+text tower instead of real CLIP weights. Check it's `True` before trusting
+anything past Phase 3. The `gc10` dataset path and real DeepCrack data are
+still completely untested (no data available where this was built). See
+`phase-notes/PHASE-4.md` §5 and `PHASE-6.md`/`PHASE-7.md` for what's left
+and the commands to run once a GPU is available.
 
 ### Build strategy
 
@@ -211,6 +215,7 @@ scripts/
   train_tgfem.py       Phase 6 training (tgfem / tgfem_identity / cbam_worlddetect)
   run_ablations.py     Phase 7 ablation dispatcher (resumable)
   eval_tgfem.py        Phase 7 negative control + cross-variant comparison
+  eval_deepcrack.py    Phase 7 DeepCrack OOD zero-shot evaluation
   demo.py              Phase 8 text-query inference demo
 src/tgfem/
   module.py            TGFEM - real math (Phase 5)
@@ -244,7 +249,7 @@ matters is **worst-case seen-class retention** — how much training data the
 |---|---|---|
 | **crescent_gap / punching_hole / welding_line** | **1572 (69%)** | **73%** |
 | inclusion / oil_spot / water_spot | 1548 | 89% — *but see below* |
-| crescent_gap / water_spot / punching_hole | 1420 | **30%** ❌ |
+| crescent_gap / water_spot / punching_hole | 1420 | **30% (rejected)** |
 
 *Why this triple wins:* these three **co-occur heavily with each other**
 (punching_hole+welding_line in 222 images, crescent_gap+welding_line in 150).

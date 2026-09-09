@@ -89,8 +89,8 @@ parameters      : 2,591,010     (fused: 2,583,322 — 6.4 GFLOPs)
 output shape    : (1, 10, 8400)
 ```
 
-- `10` = 4 box coords + 6 NEU-DET classes ✓
-- `8400` = 80² + 40² + 20² anchor positions ✓
+- `10` = 4 box coords + 6 NEU-DET classes, correct
+- `8400` = 80² + 40² + 20² anchor positions, correct
 
 **The identity check matters beyond this phase.** Ablation (a) in the report is
 "TG-FEM removed" — but removing a module also removes its parameters, which

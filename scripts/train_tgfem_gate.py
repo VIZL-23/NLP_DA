@@ -87,28 +87,28 @@ def main():
     print()
 
     trainer = TGFEMTrainer(
-        overrides=dict(
-            model=str(MODEL_CFG),
-            data=str(DATA),
-            epochs=args.epochs,
-            fraction=args.fraction,
-            batch=args.batch,
-            imgsz=args.imgsz,
-            device=args.device,
-            workers=0,
-            amp=False,  # AMP needs CUDA; this is a CPU structural check
-            plots=False,
-            val=True,
+        overrides={
+            "model": str(MODEL_CFG),
+            "data": str(DATA),
+            "epochs": args.epochs,
+            "fraction": args.fraction,
+            "batch": args.batch,
+            "imgsz": args.imgsz,
+            "device": args.device,
+            "workers": 0,
+            "amp": False,  # AMP needs CUDA; this is a CPU structural check
+            "plots": False,
+            "val": True,
             # nbs=batch forces accumulate=1 (Ultralytics default nbs=64 means
             # optimizer.step() only fires every round(64/batch) batches - a
             # tiny smoke-test run like this one never reaches that many
             # batches in an epoch, so nothing would ever appear to move even
             # though gradients are flowing correctly. Not a bug, just a
             # nominal-batch-size mismatch at this toy scale).
-            nbs=args.batch,
-            class_texts=class_texts,
-            n_ctx=args.n_ctx,
-        )
+            "nbs": args.batch,
+            "class_texts": class_texts,
+            "n_ctx": args.n_ctx,
+        }
     )
 
     # --- structural assertions, checked as soon as get_model() has run -----
@@ -154,7 +154,7 @@ def main():
         raise SystemExit("\nPhase 5 gate: FAILED - context tokens did not move; gradient is not reaching them.\n")
 
     # --- prove a TGFEM layer materialised real parameters (not identity) ---
-    live_tgfem = [m for m in trainer.model.model if isinstance(m, TGFEM)][0]
+    live_tgfem = next(m for m in trainer.model.model if isinstance(m, TGFEM))
     assert live_tgfem.proj is not None and live_tgfem.channel_gate is not None, \
         "TGFEM never materialised proj/channel_gate - was txt ever populated?"
     print(f"TGFEM materialised    : proj={tuple(live_tgfem.proj.weight.shape)}  "

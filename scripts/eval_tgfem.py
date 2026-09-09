@@ -30,7 +30,6 @@ Run:
 import argparse
 import json
 import sys
-from copy import copy
 from pathlib import Path
 
 import yaml
@@ -87,12 +86,12 @@ def negative_control(checkpoint: Path, data_yaml: Path, device: str, imgsz: int,
     def run(class_texts, tag):
         tc = TextConditioner(class_texts, n_ctx=0, device=torch_device)  # torch-style device, see above
         tc.attach(model, tgfem_layers)
-        args = copy(model.args) if hasattr(model, "args") else None
         # model.args may not exist on a bare loaded model - build minimal args instead
         from ultralytics.cfg import get_cfg
-        val_args = get_cfg(overrides=dict(
-            data=str(data_yaml), split="test", imgsz=imgsz, batch=batch, device=device, plots=False,
-        ))
+        val_args = get_cfg(overrides={
+            "data": str(data_yaml), "split": "test", "imgsz": imgsz, "batch": batch,
+            "device": device, "plots": False,
+        })
         validator = DetectionValidator(args=val_args, save_dir=REPO_ROOT / "runs" / f"eval_control_{tag}")
         validator(model=model)
         return validator.metrics
@@ -126,15 +125,17 @@ def compare(dataset: str, protocol: str):
     print("=" * 78)
     print(f"Phase 6/7 comparison - {dataset} / {protocol}")
     print("=" * 78)
-    print(f"{'variant':<20}{'n_ctx':>6}{'tier':>10}{'mAP@0.5':>10}{'CLIP real?':>12}")
+    print(f"{'variant':<20}{'n_ctx':>6}{'tier':>10}{'mAP@0.5':>10}{'infer ms':>10}{'CLIP real?':>12}")
     for r in rows:
-        print(f"{r['variant']:<20}{r['n_ctx']:>6}{r['tier']:>10}{r['mAP50']:>10.4f}"
+        infer = r.get("speed_ms", {}).get("inference")
+        infer_str = f"{infer:.1f}" if infer else "n/a"
+        print(f"{r['variant']:<20}{r['n_ctx']:>6}{r['tier']:>10}{r['mAP50']:>10.4f}{infer_str:>10}"
               f"{'yes' if r.get('pretrained_clip_loaded') else 'NO':>12}")
 
     tgfem = next((r for r in rows if r["variant"] == "tgfem"), None)
     cbam = next((r for r in rows if r["variant"] == "cbam_worlddetect"), None)
     if tgfem and cbam:
-        print(f"\nablation (g) - TG-FEM vs CBAM gates, same WorldDetect head:")
+        print("\nablation (g) - TG-FEM vs CBAM gates, same WorldDetect head:")
         print(f"  TG-FEM mAP@0.5 = {tgfem['mAP50']:.4f}   CBAM mAP@0.5 = {cbam['mAP50']:.4f}"
               f"   delta = {tgfem['mAP50'] - cbam['mAP50']:+.4f}")
         print("\n  per-class delta (falsifiable prediction: gain concentrates on "
@@ -148,7 +149,7 @@ def compare(dataset: str, protocol: str):
 
     identity = next((r for r in rows if r["variant"] == "tgfem_identity"), None)
     if tgfem and identity:
-        print(f"\nablation (a) - TG-FEM vs identity (same param budget):")
+        print("\nablation (a) - TG-FEM vs identity (same param budget):")
         print(f"  TG-FEM mAP@0.5 = {tgfem['mAP50']:.4f}   identity mAP@0.5 = {identity['mAP50']:.4f}"
               f"   delta = {tgfem['mAP50'] - identity['mAP50']:+.4f}")
 

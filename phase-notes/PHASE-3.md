@@ -58,7 +58,7 @@ the mean, so this is visible rather than buried.
 
 ---
 
-## 3. ⭐ The confound, resolved — and CBAM is not a weak control
+## 3. The confound, resolved — and CBAM is not a weak control
 
 ### The problem
 Inserting modules at layers 5/8/13 shifts every downstream index, so the stock

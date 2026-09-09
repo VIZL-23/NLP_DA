@@ -100,7 +100,7 @@ are still declared in `names` — they simply have zero training examples.
 
 ---
 
-## 4. ⚠ FINDING: the problem statement's constraint (ii) does not hold for NEU-DET
+## 4. FINDING: the problem statement's constraint (ii) does not hold for NEU-DET
 
 The report's problem statement asserts that target defects:
 
@@ -190,7 +190,7 @@ classes** (which would make the contrastive target ambiguous).
 Protocol filtering is built in — under `openvocab`, the held-out classes
 contribute **0** phrases to the training vocabulary (60 → 40).
 
-> **⚠ REVIEW NEEDED.** The corpus is marked `0.1-draft`. The wording was authored
+> **REVIEW NEEDED.** The corpus is marked `0.1-draft`. The wording was authored
 > from general metallurgical description, not from an inspection manual. Before
 > DA2, the team should verify the domain terminology — particularly the `material`
 > and `alias` tiers — against an authoritative source, since the whole G4 claim

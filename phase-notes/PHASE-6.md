@@ -1,137 +1,183 @@
 # Phase 6 — Training
 
-**Status:** Scripts complete and smoke-tested. Full runs blocked - no GPU available for this pass.
+**Status:** Complete. All five runs executed on GPU with real CLIP weights.
 **Goal:** Full runs on both protocols.
 
 ---
 
-## 1. What we set out to do
+## 1. Results (NEU-DET, held-out TEST split)
 
-| Task | Result |
-|---|---|
-| A training script that uses the real language branch + TG-FEM math (Phases 4/5), not the plain `YOLO(...).train()` API Phase 3 used | Done — `scripts/train_tgfem.py` |
-| Cover all three Phase 5 variants (tgfem, ablation (a), ablation (g)) from one script | Done |
-| Evaluate on the held-out TEST split, not the val split Ultralytics reports during training | Done (Phase 3's own finding, reapplied) |
-| Smoke-test the full script end to end | Done, CPU/toy scale |
-| Actually run the report's schedule (150 epochs, batch 16, imgsz 640) for a real number | **Not done — no GPU available yet** |
+Every run: 150 epochs, batch 16, 640x640, seed 42, `pretrained_clip_loaded: true`.
 
----
-
-## 2. Why this isn't just train_baseline.py again
-
-Phase 3's `train_baseline.py` calls the high-level `YOLO(cfg).train(...)`
-API. That's fine for `stock`/`cbam`, which need no text at all. It cannot
-work for `tgfem` (or the ablation (g) control), because there is no way to
-hand a `YOLO` wrapper's trainer a language branch to own, recompute every
-forward pass, and expose to the optimiser — that machinery is
-`TGFEMTrainer` (Phase 5). `scripts/train_tgfem.py` is the Phase 6
-equivalent of `train_baseline.py`, built on `TGFEMTrainer` instead.
-
-**Vocabulary selection.** `class_texts_for()` (`src/tgfem/data.py`) picks
-one phrase per class, in the class-index order the dataset YAML declares,
-from a given tier (`--tier`, default `natural`) — this is what ablation
-(d) varies, together with `--n-ctx`. Order matters: WorldDetect/TG-FEM match
-text to ground truth by class **index**, never by string (the same rule
-Phase 3's `eval_yoloworld.py` had to enforce after finding the opposite bug
-there).
-
-**Test-split evaluation.** `trainer.validator` (built by
-`TGFEMTrainer._setup_train`) validates on the data YAML's `val` split
-during training — the report's criteria are defined on `test`, which is
-supposed to stay untouched until the very end (Phase 3 finding). The script
-builds a **second, fresh** `DetectionValidator` with `split="test"`
-afterwards, exactly mirroring what `train_baseline.py` does via the
-high-level API's `model.val(split="test", ...)`.
+| variant | init | head | gates | mAP@0.5 | mAP@0.5:0.95 |
+|---|---|---|---|---|---|
+| stock (Phase 3) | pretrained | Detect | — | **0.7717** | 0.4336 |
+| CBAM (Phase 3) | scratch | Detect | image | **0.7372** | 0.4150 |
+| **TG-FEM** | scratch | WorldDetect | **text** | **0.7268** | 0.3998 |
+| **CBAM+WorldDetect** [abl g] | scratch | WorldDetect | image | **0.7240** | 0.3954 |
+| **TG-FEM identity** [abl a] | scratch | WorldDetect | none | **0.7183** | 0.3846 |
+| stock scratch (Phase 3) | scratch | Detect | — | **0.7069** | 0.3947 |
 
 ---
 
-## 3. Smoke test (CPU, 1 epoch, imgsz=64, batch=8)
+## 2. The two ablations that decide the paper
 
 ```
-Using 1434 train, 176 val images ...
-1 epochs completed in 0.030 hours.
-Validating .../best.pt...
-  val split (176 img)  : mAP@0.5 = 0.00102
-Validating on TEST split (separately, 190 img, 429 instances):
-  all        190        429    0.00374   0.183   0.00433   0.000995
-saved -> results/phase6_neu_closed_tgfem.json
+ablation (g)  TG-FEM  -  CBAM+WorldDetect  =  +0.0028
+ablation (a)  TG-FEM  -  identity           =  +0.0085
 ```
 
-Numbers are meaningless (1 epoch, toy imgsz, random-init CLIP — see
-`phase-notes/PHASE-4.md` §5) — the point of this run was to prove the
-script itself is correct: it trains, evaluates on the right split, prints
-the CLIP-not-pretrained warning, and writes a `results/phase6_*.json` in
-the same schema Phase 3 established. It is.
+**Both are inside the noise floor.** Per-epoch validation mAP swung by ±0.10
+during training (e.g. stock_scratch went 0.754 -> 0.560 -> 0.760 across epochs
+80-90); a 0.28-point difference on a 190-image test split is far below that.
+
+With the detection head now held constant, **there is no evidence that
+text-derived gates outperform image-derived gates.**
+
+### The falsifiable prediction fails
+
+Phase 3 §3 predicted: if text conditioning works, TG-FEM's gain over CBAM should
+concentrate on `crazing` and `rolled-in_scale` — the texture-confusable classes
+where attention already helped most.
+
+| class | TG-FEM | CBAM+WD | delta |
+|---|---|---|---|
+| **crazing** | 0.4036 | 0.4386 | **−0.0350** |
+| **rolled-in_scale** | 0.5556 | 0.5696 | **−0.0139** |
+| pitted_surface | 0.8257 | 0.7724 | +0.0532 |
+| scratches | 0.9151 | 0.8990 | +0.0161 |
+| patches | 0.9000 | 0.8848 | +0.0152 |
+| inclusion | 0.7608 | 0.7797 | −0.0188 |
+
+TG-FEM is **worse** on both predicted classes. The prediction was specific and
+falsifiable, and it was falsified. The small positive total comes from
+`pitted_surface`, which the mechanism gives no reason to expect.
 
 ---
 
-## 4. ⚠ BLOCKED — no GPU available
+## 3. ⚠ The open-vocabulary claim fails outright
 
-The machine used for Phases 4-6 so far has no CUDA device
-(`torch.cuda.is_available()` is `False`) and no route to `huggingface.co`
-(Phase 4 §5) — the two things a real Phase 6 run needs. The report's
-schedule (150 epochs, batch 16, imgsz 640, per baseline — Phase 3 §6) took
-**~2 hours per run on an RTX 4050** for the much simpler Phase 3 baselines;
-TG-FEM's extra compute (attention + a CLIP forward pass every step, even
-frozen) will cost more, not less. Running that on CPU would take,
-conservatively, many times longer per run, and there are at least three
-required runs (tgfem, ablation (a), ablation (g)) before any ablation (d)
-variants.
+Openvocab protocol, TEST split = 600 images / 1321 instances:
 
-**What is ready to go, the moment a GPU + internet-connected machine is
-available:**
+| class | images | instances | AP@0.5 |
+|---|---|---|---|
+| **crazing** (held out) | 300 | 688 | **0.000** |
+| **rolled-in_scale** (held out) | 300 | 628 | **0.000** |
+| inclusion (seen) | 1 | 1 | 0.000 |
+| patches (seen) | 4 | 4 | 0.564 |
 
-```bash
-python scripts/train_tgfem.py --variant tgfem            --dataset neu --protocol closed --device 0
-python scripts/train_tgfem.py --variant tgfem_identity    --dataset neu --protocol closed --device 0
-python scripts/train_tgfem.py --variant cbam_worlddetect  --dataset neu --protocol closed --device 0
-python scripts/train_tgfem.py --variant tgfem --protocol openvocab --device 0   # the zero-shot numbers
-```
+**Both held-out classes score exactly zero, with 688 and 628 instances present.**
+Not a sparse-data artifact — the model detects none of them.
 
-or, to run the priority ablations as a batch: `python scripts/run_ablations.py --priority-only --device 0`
-(see `phase-notes/PHASE-7.md`).
+### The reported number is misleading
+`results/phase6_neu_openvocab_tgfem.json` shows `mAP50 = 0.1409`. That is the
+mean over four classes where only `patches` scores:
+`(0 + 0 + 0.564 + 0) / 4 = 0.141`. It is driven by **4 instances of a class the
+model was trained on.**
 
-**Before trusting any resulting number:** check
-`results/phase6_*.json`'s `"pretrained_clip_loaded"` field is `true`. If
-it's `false`, the run still executed correctly but the text embeddings were
-semantic noise (same caveat as every run so far).
+**Do NOT compare it to YOLO-World-S's 0.0394** and claim the +5-point criterion
+is met. The test sets differ (600-image held-out pool vs the 190-image closed
+test split) and the number reflects a seen class. On the criterion's actual
+subject — held-out categories queried by text — the score is **0.000**.
+
+CBAM+WorldDetect openvocab behaves identically (0.0793, also 0.000 on both
+held-out classes), so this is a property of the setup, not of TG-FEM.
+
+### Why, and why it is not a bug
+`WorldDetect` classifies open-vocabulary, but that ability comes from
+**large-scale region-text pretraining** — YOLO-World used 27M grounding pairs.
+This project trains from scratch on **1,075 images**.
+
+The vision branch only ever learns to place *seen* classes' region embeddings
+near their text embeddings. Nothing in the objective teaches it that an unseen
+defect's appearance should land near unseen text. The architecture is sound; it
+is data-starved by roughly four orders of magnitude.
+
+The risk register anticipated this exactly (row 1: "the zero-shot gain does not
+materialise").
 
 ---
 
-## 5. Files created
+## 4. The text path IS live — verified, not assumed
+
+Before accepting a negative result, `scripts/eval_tgfem.py`'s negative control
+loaded the trained checkpoint, stripped its `TextConditioner`, and re-attached
+one carrying absurd prompts ("banana", "elephant", ...):
 
 ```
-scripts/train_tgfem.py   Phase 6 training script (tgfem / tgfem_identity / cbam_worlddetect)
+real prompts   mAP@0.5 = 0.3994
+absurd prompts mAP@0.5 = 0.0243     <- 16x collapse
 ```
+
+The model genuinely depends on its text input. **The weak ablation deltas are a
+real finding, not a disconnected wiring.**
+
+(Both figures sit below 0.7268 because the control re-attaches with `n_ctx=0`,
+discarding the learned context tokens; only the real-vs-absurd contrast matters.)
 
 ---
 
-## 6. Gate check
+## 5. Bugs found and fixed on GPU
+
+Three defects that a CPU-only machine could not have surfaced:
+
+1. **Device split in the CoOp path** (`src/tgfem/language.py`).
+   `TextConditioner` holds the encoder as a plain attribute, not a submodule, so
+   `model.to(device)` moved `ctx` to CUDA while the frozen CLIP tower stayed on
+   CPU. Died at the first validation pass. `encode_frozen` already guarded
+   itself, so the `n_ctx=0` arm would have survived while every run that matters
+   failed. Fixed with a device-sync guard in `ContextTokenLearner.forward`.
+
+2. **`TGFEMTrainer` rejected the ablation (g) control** (`src/tgfem/trainer.py`).
+   A hard guard required TGFEM layers, but CBAM+WorldDetect has none — it still
+   needs the language branch for `txt_feats`, it just has no text-gated
+   attention. **This made the single comparison the paper rests on impossible to
+   run.** Now rejects only models that consume no text at all.
+
+3. **Device string in `eval_tgfem.py`.** Ultralytics accepts a bare `"0"`;
+   `torch.load` and `Module.to` do not. Normalised once at function entry.
+
+Also: **CLIP now loads from the local `weights/clip/ViT-B-32.pt`** that
+Ultralytics already downloads for YOLO-World, instead of huggingface.co. The HF
+route stalled at 0 bytes here too — the same failure that silently degraded
+every Phase 4-6 run to a randomly-initialised encoder. Training now needs no
+network at all.
+
+---
+
+## 6. Report corrections this phase adds
+
+1. **TG-FEM costs 0.95 M parameters, not 0.21 M** (3,538,201 vs the 2,591,010
+   identity baseline) — 4.5x the stated overhead. GFLOPs 6.4 -> 8.3 (+30%).
+2. **The +5-point criterion is not met** on its actual subject (§3).
+3. **The retention criterion must name its baseline.** TG-FEM (0.7268) clears
+   the from-scratch anchor (0.7069) but not the pretrained one (0.7717).
+
+---
+
+## 7. Gate check
 
 | Criterion | Status |
 |---|---|
-| Script covers all three Phase 5 model variants | Pass |
-| Vocabulary construction matches class-index order (no string-matching bug) | Pass |
-| Evaluates on TEST split, separately from training-time val | Pass |
-| Results schema consistent with Phase 3's `results/phase3_*.json` | Pass |
-| Smoke-tested end to end (structure, not accuracy) | Pass |
-| A real 150-epoch/GPU run produced | **Blocked — no GPU available yet** |
+| All variants trained at the report's schedule | Pass |
+| Real CLIP weights in every run | Pass |
+| Evaluated on the untouched TEST split | Pass |
+| Ablations (a) and (g) executed | Pass |
+| Text path verified live by negative control | Pass |
+| TG-FEM outperforms the CBAM control | **FAIL — +0.0028, within noise** |
+| Zero-shot detection of held-out classes | **FAIL — 0.000 AP** |
 
-**Phase 6 gate: PASSED structurally, blocked on compute for the actual
-numbers.**
+**Phase 6 gate: PASSED procedurally. The scientific result is negative.**
 
 ---
 
-## 7. Carried forward
+## 8. Carried forward
 
-1. **Run the four commands in §4 on a GPU machine with internet access.**
-   This is the single largest remaining piece of work on the whole project
-   — everything upstream of it (Phases 0-5) is done and verified; nothing
-   downstream (Phase 7's ablations, Phase 8's report numbers) can happen
-   without these runs existing.
-2. Confirm `pretrained_clip_loaded: true` in the resulting JSONs before
-   using them for anything.
-3. GC10-DET and DeepCrack aren't present on this machine either (gitignored,
-   download separately per the README) — Phase 6 runs against `neu` only
-   were exercised so far; the `--dataset gc10` path is written but untested
-   end-to-end for lack of the data.
+1. The headline open-vocabulary claim is unsupported. The report needs
+   restructuring around what the data shows — see PHASE-7.md.
+2. Untested paths remain: GC10-DET, DeepCrack OOD, ablation (d) (`--tier`,
+   `--n-ctx`), and TG-FEM at P5-only vs all three scales.
+3. A negative result with this many controls (identity at equal parameters, an
+   image-gated control at equal head, a live-text negative control, and a
+   pre-registered falsifiable prediction) is a legitimate finding, not a failed
+   project.

@@ -88,7 +88,7 @@ before starting a phase.
 | **3** | Baselines | **Done** | stock 0.7717 · CBAM 0.7372 · YOLO-World-S 0.0394 |
 | **4** | Language branch | **Done**\* | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
 | **5** | TG-FEM | **Done**\* | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
-| **6** | Training | **Scripted, not yet run** | `scripts/train_tgfem.py` is written and passes a structural smoke test; a real 150-epoch run needs a GPU |
+| **6** | Training | **Done** | 5 runs on GPU with real CLIP. **Result is negative** - see below |
 | **7** | Evaluation & ablations | **Scripted, not yet run** | `scripts/run_ablations.py` + `scripts/eval_tgfem.py`; depends on Phase 6's runs existing |
 | **8** | Report & demo | **Scaffolded** | `scripts/demo.py` works end to end; needs a trained checkpoint from Phase 6 to be useful |
 
@@ -146,6 +146,46 @@ Isolating the two effects:
 > the NEU-DET held-out pair. If text conditioning works, TG-FEM's gain over CBAM
 > should appear on these same classes. Report per-class AP, not just the mean.
 > See `phase-notes/PHASE-3.md` §3.
+
+### Phase 6 results (NEU-DET test split) - THE RESULT IS NEGATIVE
+
+| variant | init | head | gates | mAP@0.5 |
+|---|---|---|---|---|
+| stock | pretrained | Detect | - | 0.7717 |
+| CBAM | scratch | Detect | image | 0.7372 |
+| **TG-FEM** | scratch | WorldDetect | **text** | **0.7268** |
+| CBAM+WorldDetect [abl g] | scratch | WorldDetect | image | 0.7240 |
+| TG-FEM identity [abl a] | scratch | WorldDetect | none | 0.7183 |
+| stock scratch | scratch | Detect | - | 0.7069 |
+
+```
+ablation (g)  TG-FEM - CBAM+WorldDetect = +0.0028   <- within noise
+ablation (a)  TG-FEM - identity          = +0.0085   <- within noise
+```
+
+Per-epoch validation swung by +-0.10 during training, so neither delta is
+distinguishable from noise. **With the head held constant, there is no evidence
+that text-derived gates beat image-derived gates.**
+
+**The falsifiable prediction failed.** It said TG-FEM's gain should concentrate
+on `crazing` and `rolled-in_scale`; TG-FEM is *worse* on both
+(-0.0350, -0.0139).
+
+**Zero-shot fails outright.** On the openvocab test split both held-out classes
+score **0.000 AP** despite 688 and 628 instances. The `mAP50 = 0.1409` in
+`results/phase6_neu_openvocab_tgfem.json` is the mean over four classes where
+only the *seen* class `patches` (4 instances) scores - do not compare it to
+YOLO-World-S's 0.0394.
+
+**This is not a wiring bug.** The negative control swaps in absurd prompts and
+performance collapses 16x (0.3994 -> 0.0243), so the text path is genuinely live.
+
+Diagnosis: `WorldDetect`'s open-vocabulary ability comes from large-scale
+region-text pretraining (YOLO-World: 27M grounding pairs). Training from scratch
+on 1,075 images cannot produce it. Architecture sound, data-starved by ~4 orders
+of magnitude. The risk register anticipated this (row 1).
+
+See `phase-notes/PHASE-6.md` for full detail.
 
 ### Priority ablations
 Of the seven planned, three are load-bearing — run these first:

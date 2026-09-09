@@ -1,0 +1,25 @@
+{
+  "variant": "tgfem_identity",
+  "dataset": "neu",
+  "protocol": "closed",
+  "config": "yolo11-tgfem-ablation-a.yaml",
+  "n_ctx": 8,
+  "tier": "natural",
+  "pretrained_clip_loaded": true,
+  "epochs": 150,
+  "batch": 16,
+  "imgsz": 640,
+  "seed": 42,
+  "mAP50": 0.71828,
+  "mAP50_95": 0.38456,
+  "precision": 0.68297,
+  "recall": 0.68315,
+  "per_class_AP50": {
+    "crazing": 0.33728,
+    "inclusion": 0.77345,
+    "patches": 0.9155,
+    "pitted_surface": 0.82003,
+    "rolled-in_scale": 0.56659,
+    "scratches": 0.89685
+  }
+}

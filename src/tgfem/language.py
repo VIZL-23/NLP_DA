@@ -39,6 +39,26 @@ CLIP_PRETRAINED_TAG = "openai"
 CLIP_EMBED_DIM = 512  # matches the README correction: T is N x 512, not N x 256
 
 
+
+def _find_local_openai_clip():
+    """Return a path to a cached OpenAI CLIP ViT-B/32 checkpoint, or None.
+
+    Searched in priority order; the first two are where Ultralytics puts it.
+    """
+    import os
+    from pathlib import Path
+
+    candidates = [
+        Path(__file__).resolve().parent.parent.parent / "weights" / "clip" / "ViT-B-32.pt",
+        Path(os.path.expanduser("~")) / "AppData" / "Roaming" / "Ultralytics" / "weights" / "clip" / "ViT-B-32.pt",
+        Path(os.path.expanduser("~")) / ".cache" / "clip" / "ViT-B-32.pt",
+    ]
+    for c in candidates:
+        if c.is_file() and c.stat().st_size > 100_000_000:  # guard against a truncated download
+            return c
+    return None
+
+
 class TextEncoder(nn.Module):
     """Frozen CLIP text tower, exposed at the layer granularity CoOp needs.
 
@@ -57,9 +77,21 @@ class TextEncoder(nn.Module):
 
         self.pretrained_loaded = True
         try:
-            model, _, _ = open_clip.create_model_and_transforms(
-                CLIP_MODEL_NAME, pretrained=CLIP_PRETRAINED_TAG
-            )
+            # Prefer a locally cached OpenAI checkpoint over the network.
+            # Ultralytics already downloads exactly this file (the original
+            # OpenAI CLIP ViT-B/32, ~354 MB) for YOLO-World's own text tower,
+            # so on a machine that has ever run YOLO-World the weights are
+            # already on disk. Reaching huggingface.co for a second copy is
+            # both redundant and, on restricted networks, the single point of
+            # failure that silently degraded every Phase 4-6 run to a
+            # RANDOMLY-INITIALISED encoder (phase-notes/PHASE-4.md section 5).
+            local = _find_local_openai_clip()
+            if local is not None:
+                model = open_clip.load_openai_model(str(local), device="cpu")
+            else:
+                model, _, _ = open_clip.create_model_and_transforms(
+                    CLIP_MODEL_NAME, pretrained=CLIP_PRETRAINED_TAG
+                )
         except Exception as exc:  # noqa: BLE001 - deliberately broad, see module docstring
             warnings.warn(
                 f"\n{'!' * 70}\n"
@@ -177,6 +209,20 @@ class ContextTokenLearner(nn.Module):
     def forward(self, class_texts: list[str]) -> torch.Tensor:
         if self.n_ctx == 0 or self.ctx is None:
             return self.encoder.encode_frozen(class_texts)
+
+        # DEVICE SYNC - do not remove.
+        # `TextConditioner` holds the encoder as a plain attribute, not as a
+        # registered submodule, so Ultralytics' `model.to(device)` never
+        # reaches it: `ctx` (exposed to the optimiser as `model.tgfem_ctx`)
+        # migrates to CUDA while the frozen CLIP tower stays on CPU. The next
+        # `token_embedding(ids)` then raises
+        #   "Expected all tensors to be on the same device, but got index is
+        #    on cuda:0, different from other tensors on cpu".
+        # `encode_frozen` already guards itself this way; the CoOp path did
+        # not, which is why the n_ctx=0 ablation arm would have survived and
+        # every n_ctx>0 run died at the first validation pass on GPU.
+        if self.encoder.positional_embedding.device != self.ctx.device:
+            self.encoder.to(self.ctx.device)
 
         ids = self._build_ids(class_texts)
         x = self.encoder.token_embedding(ids)  # (N, L, token_dim), frozen lookup

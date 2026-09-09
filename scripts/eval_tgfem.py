@@ -61,9 +61,16 @@ def negative_control(checkpoint: Path, data_yaml: Path, device: str, imgsz: int,
 
     names = [v for _, v in sorted(yaml.safe_load(data_yaml.read_text())["names"].items())]
 
-    ckpt = torch.load(checkpoint, map_location=device, weights_only=False)
+    # Ultralytics accepts a bare "0" as a device; plain torch does not - both
+    # torch.load(map_location=...) and Module.to(...) want "cuda:0"/"cpu"/a
+    # torch.device. Normalise once here rather than at each call site.
+    # (Symptoms otherwise: "don't know how to restore data location of
+    # torch.storage.UntypedStorage" then "Invalid device string: '0'".)
+    torch_device = f"cuda:{device}" if str(device).isdigit() else str(device)
+
+    ckpt = torch.load(checkpoint, map_location=torch_device, weights_only=False)
     model = ckpt["model"] if isinstance(ckpt, dict) else ckpt
-    model = model.float().to(device)
+    model = model.float().to(torch_device)
 
     # Detach whatever TextConditioner came pickled with the checkpoint and
     # attach a fresh one, n_ctx=0 (no learned component - the absurd prompts
@@ -78,7 +85,7 @@ def negative_control(checkpoint: Path, data_yaml: Path, device: str, imgsz: int,
     from ultralytics.models.yolo.detect import DetectionValidator
 
     def run(class_texts, tag):
-        tc = TextConditioner(class_texts, n_ctx=0, device=device)
+        tc = TextConditioner(class_texts, n_ctx=0, device=torch_device)  # torch-style device, see above
         tc.attach(model, tgfem_layers)
         args = copy(model.args) if hasattr(model, "args") else None
         # model.args may not exist on a bare loaded model - build minimal args instead

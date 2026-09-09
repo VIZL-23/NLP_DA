@@ -73,10 +73,26 @@ class TGFEMTrainer(DetectionTrainer):
             model.load(weights)
 
         tgfem_layers = [m for m in model.model if isinstance(m, TGFEM)]
-        if not tgfem_layers:
+
+        # A model with NO TGFEM layers is legitimate: ablation (g)'s control is
+        # CBAM + WorldDetect (cfg/yolo11-cbam-worlddetect.yaml). It still needs
+        # the language branch, because WorldDetect classifies by comparing
+        # region embeddings against `txt_feats` - it just has no text-gated
+        # attention. Requiring TGFEM layers here made the one comparison the
+        # paper actually rests on impossible to run.
+        #
+        # What must be rejected is a model that needs no text at all (a stock
+        # `Detect` head and no TGFEM) - that belongs in train_baseline.py,
+        # where Phase 3's stock/cbam runs live.
+        from ultralytics.nn.modules.head import WorldDetect
+
+        head = model.model[-1]
+        needs_text = isinstance(head, WorldDetect)
+        if not tgfem_layers and not needs_text:
             raise RuntimeError(
-                "TGFEMTrainer was asked to train a model with no TGFEM layers in it - "
-                "wrong cfg? (expected cfg/yolo11-tgfem*.yaml)"
+                "TGFEMTrainer was given a model with neither TGFEM layers nor a "
+                "WorldDetect head, so nothing in it consumes text. Use "
+                "scripts/train_baseline.py for text-free variants."
             )
 
         device = next(model.parameters()).device

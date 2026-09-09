@@ -89,7 +89,7 @@ before starting a phase.
 | **4** | Language branch | Done | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
 | **5** | TG-FEM | Done | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
 | **6** | Training | **Done, on GPU, real CLIP** | 5 runs at the report's schedule. `pretrained_clip_loaded: true` throughout. **The result is negative** — see below |
-| **7** | Evaluation & ablations | Partly done | Ablations (a) and (g) run for real, plus the negative control (`eval_tgfem.py`). `run_ablations.py` sweep, ablation (d), GC10 and DeepCrack OOD still unrun |
+| **7** | Evaluation & ablations | **Done for NEU-DET** | Ablations (a), (d), (g) + phrase augmentation, all on GPU. Text interface characterised. GC10 and DeepCrack OOD still unrun |
 | **8** | Report & demo | Scaffolded | `scripts/demo.py` verified end to end; the report itself needs restructuring around the Phase 6 result |
 
 \* **Verified by actually running the code, not numerically yet.** All of

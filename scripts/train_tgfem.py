@@ -54,13 +54,17 @@ DATA_YAML = {
     ("neu", "openvocab"): REPO_ROOT / "datasets" / "neu-det-yolo" / "neu_openvocab.yaml",
     ("gc10", "closed"): REPO_ROOT / "datasets" / "gc10-det-yolo" / "gc10_closed.yaml",
     ("gc10", "openvocab"): REPO_ROOT / "datasets" / "gc10-det-yolo" / "gc10_openvocab.yaml",
+    # NEU + GC10 merged, 16 classes (scripts/prepare_combined.py). Closed only:
+    # a combined open-vocabulary split would need its held-out classes chosen
+    # afresh across both taxonomies, which is a separate design decision.
+    ("combined", "closed"): REPO_ROOT / "datasets" / "combined-yolo" / "combined_closed.yaml",
 }
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", choices=sorted(CFG), default="tgfem")
-    ap.add_argument("--dataset", choices=["neu", "gc10"], default="neu")
+    ap.add_argument("--dataset", choices=["neu", "gc10", "combined"], default="neu")
     ap.add_argument("--protocol", choices=["closed", "openvocab"], default="closed")
     ap.add_argument("--tier", choices=["bare", "natural", "visual", "material", "alias"], default="natural",
                      help="ablation (d): which phrase tier forms the fixed training vocabulary")
@@ -87,7 +91,8 @@ def main():
     if not data_path.exists():
         raise SystemExit(
             f"missing {data_path}\n"
-            f"run: python scripts/prepare_{'neu_det' if args.dataset == 'neu' else 'gc10'}.py"
+            f"run: python scripts/prepare_"
+            f"{ {'neu': 'neu_det', 'gc10': 'gc10', 'combined': 'combined'}[args.dataset] }.py"
         )
     names = [v for _, v in sorted(yaml.safe_load(data_path.read_text())["names"].items())]
     class_texts = class_texts_for(names, tier=args.tier)

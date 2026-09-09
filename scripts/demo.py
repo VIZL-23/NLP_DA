@@ -93,17 +93,43 @@ def main():
     dets = non_max_suppression(y, conf_thres=args.conf, iou_thres=0.7, nc=len(args.query))[0]
     print(f"\n{len(dets)} detection(s) above conf={args.conf}:")
 
-    sx, sy = w0 / args.imgsz, h0 / args.imgsz
+    # NEU-DET images are 200x200, so drawing at native size makes a query like
+    # "scratches on the steel surface" several times wider than the whole frame.
+    # Render onto an upscaled canvas instead, and size the text to the canvas.
+    canvas_min = 640
+    up = max(1.0, canvas_min / max(h0, w0))
+    canvas = cv2.resize(img, (int(w0 * up), int(h0 * up)), interpolation=cv2.INTER_CUBIC)
+    ch, cw = canvas.shape[:2]
+
+    sx, sy = (w0 / args.imgsz) * up, (h0 / args.imgsz) * up
+    font, fs, th = cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1
+    RED, WHITE = (0, 0, 255), (255, 255, 255)
+
     for *xyxy, conf, cls in dets.tolist():
-        x1, y1, x2, y2 = [int(v) for v in (xyxy[0] * sx, xyxy[1] * sy, xyxy[2] * sx, xyxy[3] * sy)]
+        x1, y1, x2, y2 = (int(xyxy[0] * sx), int(xyxy[1] * sy),
+                          int(xyxy[2] * sx), int(xyxy[3] * sy))
         label = args.query[int(cls)]
-        print(f"  {label!r:<40} conf={conf:.3f}  box=({x1},{y1},{x2},{y2})")
-        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-        cv2.putText(img, f"{label} {conf:.2f}", (x1, max(0, y1 - 6)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+        # Report the box in ORIGINAL image pixels, not canvas pixels.
+        print(f"  {label!r:<40} conf={conf:.3f}  "
+              f"box=({int(x1 / up)},{int(y1 / up)},{int(x2 / up)},{int(y2 / up)})")
+
+        cv2.rectangle(canvas, (x1, y1), (x2, y2), RED, 2)
+
+        # Shorten the caption until it fits the canvas width.
+        text = f"{label} {conf:.2f}"
+        while cv2.getTextSize(text, font, fs, th)[0][0] > cw - 8 and len(text) > 12:
+            label = label[:-4] + "..." if not label.endswith("...") else label[:-4] + "..."
+            text = f"{label} {conf:.2f}"
+
+        (tw, tht), base = cv2.getTextSize(text, font, fs, th)
+        # Prefer above the box; drop inside it when there is no room at the top.
+        ty = y1 - 4 if y1 - tht - base - 4 >= 0 else min(y1 + tht + 4, ch - 2)
+        tx = max(0, min(x1, cw - tw - 4))
+        cv2.rectangle(canvas, (tx, ty - tht - base), (tx + tw + 4, ty + 2), RED, -1)
+        cv2.putText(canvas, text, (tx + 2, ty - 2), font, fs, WHITE, th, cv2.LINE_AA)
 
     out = args.out or Path(f"{args.image.stem}_demo.png")
-    cv2.imwrite(str(out), img)
+    cv2.imwrite(str(out), canvas)
     print(f"\nsaved -> {out}")
 
 

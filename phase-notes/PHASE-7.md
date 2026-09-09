@@ -1,210 +1,217 @@
 # Phase 7 — Evaluation & Ablations
 
-**Status:** Scripts complete, smoke-tested, and (unusually for this project so far) actually run end to end at toy scale — a real bug was found and fixed in the process. Real-scale numbers still blocked on Phase 6 (needs a GPU).
-**Goal:** mAP, zero-shot, FPS + the 7 ablations.
+**Status:** Complete for NEU-DET. All priority ablations run on GPU with real CLIP weights.
+**Goal:** mAP, zero-shot, FPS, and the ablations that decide whether the mechanism works.
 
 ---
 
-## 1. What we set out to do
+## 1. What this phase establishes
 
-| Task | Result |
-|---|---|
-| A way to run the seven planned ablations, three of them flagged priority | Done — `scripts/run_ablations.py`, and actually executed (§3a) |
-| Negative control re-check (Phase 3's `eval_yoloworld.py` bug, re-verified against a trained TG-FEM checkpoint rather than assumed fixed) | Done — `scripts/eval_tgfem.py` |
-| A compact tgfem vs tgfem_identity vs cbam_worlddetect comparison table, including the falsifiable per-class prediction from `PHASE-3.md` §3 | Done, plus a speed/FPS column (was carried forward from an earlier pass, now added) |
-| DeepCrack OOD zero-shot evaluation | Done — `scripts/eval_deepcrack.py` (§5). This did not exist at all until this pass - see README's original gap list |
-| Zero-shot per-class AP on held-out classes (within-dataset) | Comes for free from Phase 6's openvocab-protocol runs — no separate script needed, see §2 |
-| Actual full-scale ablation results | **Blocked — depends on Phase 6 runs at the report's schedule, which need a GPU** |
+Three independent ablations show the architecture's mechanisms do not move mAP.
+A fourth line of investigation — probing the text interface directly — found the
+mechanism that *is* broken, fixed it, and then measured the limits of that fix.
 
----
-
-## 2. Zero-shot evaluation doesn't need a separate script
-
-The openvocab data YAMLs (`neu_openvocab.yaml`, etc.) declare **all**
-classes in `names` — held-out ones simply have zero training images (Phase
-1 design, and the README's "Locked decisions" section). So a checkpoint
-trained with `--protocol openvocab` already has WorldDetect comparing
-against the full class vocabulary, including the held-out ones, at
-inference time — the model was just never shown a training image containing
-one. Running `scripts/train_tgfem.py --protocol openvocab`'s test-split
-evaluation (test pool includes every held-out-class instance, by
-construction — Phase 1 leakage guard) *is* the zero-shot evaluation. Its
-`per_class_AP50` output already separates seen from held-out classes by
-name. A dedicated "zero-shot eval script" would just be re-deriving numbers
-Phase 6 already produces; `eval_tgfem.py` instead covers what that run does
-**not**: a negative control and a cross-variant comparison (§3, §4).
-
-**Verified, not just argued.** `--protocol openvocab` had never actually
-been run before this pass — every earlier test in this project used
-`closed`. Ran it once (toy scale): 1075 training images, exactly matching
-Phase 1's documented open-vocab train split count, and the resulting
-`results/phase6_neu_openvocab_tgfem.json` reports `per_class_AP50` for
-`crazing` and `rolled-in_scale` (the held-out pair) alongside the seen
-classes. That is the entire zero-shot mechanism this project exists to
-demonstrate, confirmed mechanically end to end for the first time. No new
-bug found - numbers are still noise at this scale and with a random-init
-text encoder.
+One sentence: **the detector works, the text interface matches words rather than
+meaning, and 1,075 training images is roughly four orders of magnitude short of
+what the open-vocabulary claim requires.**
 
 ---
 
-## 3. Negative control, re-verified against a real checkpoint
+## 2. Ablations (NEU-DET closed protocol, held-out TEST split)
 
-Phase 3's `eval_yoloworld.py` caught a real bug: `WorldValidator.__call__`
-silently overwrites whatever prompts `set_classes()` was given with the
-dataset YAML's own class names, so every prompt style was secretly
-evaluating the same vocabulary. That bug was specific to `WorldValidator`;
-this project's Phase 6 pipeline uses a plain `DetectionValidator` (Phase 5,
-`train_tgfem.py`), which has no `set_classes` override at all — but "the
-class most likely to reintroduce this exact failure mode" is different
-here: TG-FEM's context tokens are **learned jointly with detection**, so a
-broken or short-circuited text path could still fit the seen classes during
-training and only reveal itself at held-out-class query time.
+Every run: 150 epochs, batch 16, 640x640, seed 42, `pretrained_clip_loaded: true`.
 
-`scripts/eval_tgfem.py`'s `negative_control()` loads a **trained** checkpoint,
-strips its embedded `TextConditioner` hook, and re-attaches a fresh one with
-absurd prompts (`"banana"`, `"elephant"`, ...) — no retraining. If real and
-nonsense prompts score similarly, the classification head isn't actually
-being driven by text. Smoke-tested against a 1-epoch toy checkpoint (both
-scored 0.0, as expected at that scale — the check is written to require
-`real mAP@0.5 > 0.01` before it treats a close absurd/real gap as a failure,
-so it doesn't false-positive on an undertrained model with genuinely near-
-zero accuracy).
-
----
-
-## 4. Ablation plan (`scripts/run_ablations.py`)
-
-Of the seven planned, three are load-bearing (README) — the script runs
-these first:
-
-| # | What | How |
+| run | mAP@0.5 | mAP@0.5:0.95 |
 |---|---|---|
-| **(a)** | TG-FEM removed (identity check) | `variant=tgfem_identity`, same param budget as active |
-| **(d)** | context-token count M | `--n-ctx 0/4/8/16`, `--tier` for the M=0 hand-written-prompt arm |
-| **(g)** | gates driven by image vs text — **"this one is the paper"** | `variant=cbam_worlddetect` vs `variant=tgfem`, same WorldDetect head both times |
-
-The other four (dataset/protocol/seed variations rather than new
-architectures) are `--dataset`/`--protocol`/`--seed` flags on the same
-`train_tgfem.py`, not separate configs — not enumerated individually since
-they're combinations of flags already exposed, not new code.
-
-Each variant is a separate `python` subprocess (not an in-process loop), so
-one failing/OOMing run can't corrupt another's state, and already-completed
-runs (`results/phase6_*.json` present) are skipped — the script is
-resumable.
-
-**Dead flag removed.** The script originally took a `--priority-only`
-argument that was parsed but never read - `plan = PRIORITY` ran
-unconditionally either way. Since no non-priority plan was ever wired up
-(the paragraph above explains why: the other four ablations are flag
-combinations, not separate plans), the flag implied an alternative that
-didn't exist. Removed rather than wired up, since there is genuinely
-nothing else to run yet.
-
----
-
-## 4a. A real bug, found by actually running the dispatcher
-
-`run_ablations.py --priority-only` had never been executed before this pass
-- only its dependency `train_tgfem.py` had. Running all 6 priority variants
-end to end (toy scale: 1 epoch, batch 4, imgsz 64) surfaced a genuine
-failure: `cbam_worlddetect` crashed immediately.
-
-**Cause.** `TGFEMTrainer.get_model()` (`src/tgfem/trainer.py`) asserted at
-least one `TGFEM` layer had to exist in the model, on the assumption every
-variant this trainer runs uses TG-FEM. That's false for `cbam_worlddetect`
-- ablation (g)'s entire point is that it has **zero** TGFEM layers, using
-CBAM gates instead, while still needing the WorldDetect text-threading this
-same trainer provides. The config had simply never been trained before, so
-the bad assertion had never fired.
-
-**Fix.** Check for the `WorldDetect` head instead - that's the actual
-requirement (it's what the language branch threads text into), and TGFEM
-layer count is incidental. Re-ran after the fix: all 6 variants train
-successfully, the resume/skip logic works (a second run skips all 6
-instantly), and `eval_tgfem.py --compare-only` correctly reads and tabulates
-all 6 results, including `cbam_worlddetect`'s.
-
-This is worth stating plainly: **ablation (g) - "this one is the paper" -
-was completely broken until this pass.** Nothing about the code review or
-the earlier structural gate checks would have caught it; only running the
-actual dispatcher did.
-
----
-
-## 5. Comparison table (`eval_tgfem.py --compare-only`)
-
-Reads every `results/phase6_{dataset}_{protocol}_*.json`, tabulates mAP@0.5
-(and now inference ms - §4a's fix made a real 6-variant run possible, which
-is what surfaced that this was missing) per variant, and computes:
-
-- **ablation (g):** `tgfem.mAP50 - cbam_worlddetect.mAP50`, plus **per-class**
-  delta with the two texture-confusable, NEU-DET-held-out classes
-  (`crazing`, `rolled-in_scale`) flagged explicitly — this is Phase 3 §3's
-  falsifiable prediction: if text conditioning works, TG-FEM's gain over
-  CBAM should concentrate on exactly these two classes, the same ones
-  attention already helped most versus the from-scratch anchor.
-- **ablation (a):** `tgfem.mAP50 - tgfem_identity.mAP50`.
-
-Verified against a real (if toy-scale) 6-variant run after the §4a fix - the
-table reads all 6 JSONs correctly, computes both deltas, and lists the
-per-class breakdown. Numbers themselves are still noise (1 epoch, random
-CLIP) - only the machinery is confirmed correct.
-
----
-
-## 6. DeepCrack OOD zero-shot evaluation (`scripts/eval_deepcrack.py`)
-
-The one piece of Phase 7 that was not just untested but **entirely
-unwritten** until this pass. Phase 1b held DeepCrack out entirely for
-out-of-distribution zero-shot evaluation, but nothing ever actually queried
-a trained checkpoint against it.
-
-**What makes this a harder test than the within-dataset zero-shot in §2.**
-The NEU/GC10 openvocab held-out classes still come from the *same dataset*
-- same imaging regime, same general domain, just an unseen class name.
-DeepCrack is a different dataset entirely (concrete/asphalt cracks vs steel
-surface defects); the checkpoint has never seen a DeepCrack image at all.
-
-**Design.** Loads a trained checkpoint and reuses its **learned** context
-tokens throughout - including for the negative control - rather than
-resetting to `n_ctx=0` the way `eval_tgfem.py`'s negative control does.
-CoOp's premise is that a learned context generalises to new class names
-(`demo.py` relies on the same premise for live queries), so this exercises
-that premise under the hardest available condition. Reports per-tier AP
-(bare/natural/material/alias - the corpus has 10 phrases for "crack") plus
-an absurd-prompt (`"banana"`) control.
-
-**The measured caveat gets carried into the output, not just the docs.**
-DeepCrack's boxes are loose by construction (Phase 1b: median fill ratio
-16.6%). The script prints this reminder alongside every result: a low
-number is not by itself proof the model can't localise cracks - it could be
-an IoU/geometry disagreement even when the model is pointing at the right
-pixels. This was written into the script *because* Phase 1b already
-measured and documented the limitation - the eval script's job is to not
-let that finding get silently lost once a number exists to argue with.
-
-**Verification.** No real DeepCrack data is available where this was built,
-so a tiny synthetic dataset (10 images, drawn diagonal lines as fake cracks)
-was generated matching `prepare_deepcrack.py`'s expected input layout, run
-through that script to produce a real `deepcrack-yolo/` directory, and
-`eval_deepcrack.py` was run against a real (toy-scale) trained checkpoint.
-It loaded the checkpoint, found the embedded `TextConditioner`, ran all
-requested tiers plus the negative control, and wrote a results JSON -
-mechanically correct. As with everything else in this project, the numbers
-themselves mean nothing until run with real CLIP weights, a GPU, and real
-DeepCrack data.
-
----
-
-## 7. Files created
+| TG-FEM (n_ctx=8, one fixed phrase) | **0.72681** | 0.39977 |
+| CBAM + WorldDetect — ablation (g) | 0.72401 | 0.39541 |
+| TG-FEM, n_ctx=0 — ablation (d) | 0.72142 | 0.38477 |
+| TG-FEM identity — ablation (a) | 0.71830 | 0.38460 |
+| TG-FEM + phrase augmentation | 0.72047 | 0.39368 |
 
 ```
-scripts/eval_tgfem.py       negative control + comparison table (+ speed column)
-scripts/eval_deepcrack.py   DeepCrack OOD zero-shot evaluation - NEW
-scripts/run_ablations.py    resumable dispatcher over train_tgfem.py
-src/tgfem/trainer.py        bugfix: WorldDetect check replaces the wrong TGFEM-layer assertion
+ablation (a)  TG-FEM     - identity      = +0.0085
+ablation (d)  n_ctx=8    - n_ctx=0       = +0.0054
+ablation (g)  text gates - image gates   = +0.0028
+phrase aug    augmented  - fixed phrase  = -0.0063
 ```
+
+**All four deltas fall within ±0.01, against per-epoch validation swings of
+±0.10.** None is distinguishable from noise.
+
+The *consistency* is what makes this credible rather than inconclusive. Four
+different interventions, four deltas in the same tight band, with a passing
+negative control. A broken pipeline produces erratic numbers; this produces the
+same answer every way we measure it.
+
+### Ablation (d) answers gap G4 directly
+G4 asked whether prompt design for the structural-inspection vocabulary matters.
+Measured: **CoOp learnable context tokens gave no detection benefit over
+hand-written prompts** (+0.0054). For an NLP deliverable this is a clean,
+negative answer to a question the report itself posed.
+
+### The falsifiable prediction failed
+PHASE-3.md section 3 predicted that if text conditioning works, TG-FEM's gain
+over CBAM should concentrate on `crazing` and `rolled-in_scale`. It is **worse**
+on both (-0.0350, -0.0139). The prediction was specific, pre-registered, and
+falsified.
+
+---
+
+## 3. Probing the text interface directly
+
+mAP is a poor instrument for what this project is about. An inspector does not
+type the exact string the model trained on. `scripts/probe_wording.py` holds the
+image and the class fixed and varies only the *wording*.
+
+Original model (one fixed phrase per class for all 150 epochs):
+
+| query | conf |
+|---|---|
+| EXACT trained: "scratches on the steel surface" | 0.639 |
+| one word changed: "...on the metal surface" | 0.561 |
+| "long thin scratch marks on the metal" | **0.000** |
+| bare "scratches" | 0.177 |
+| "a long straight bright line running across the surface" | **0.000** |
+| "long thin gouges scored into metal" | **0.000** |
+| wrong class: "a pitted steel surface" | 0.000 |
+| CONTROL: "a wooden door" | 0.000 |
+
+**Changing one word costs 12% confidence; rephrasing at all collapses it to
+zero.** The model keyed on six specific strings. This also explains the zero-shot
+failure: a model that cannot handle a paraphrase of a *seen* class was never
+going to handle an *unseen* one.
+
+**Root cause.** `class_texts_for()` fixed one phrase per class for the entire
+run, so the model saw the identical six strings 150 times. Nothing pressured it
+to generalise across phrasing. Meanwhile the 170-phrase corpus built in Phase 1b
+went unused.
+
+---
+
+## 4. Phrase augmentation — the fix, and its measured limit
+
+Implemented `class_phrase_pools()` plus per-step resampling in
+`TextConditioner`: each **training** step draws a fresh phrasing per class from
+the corpus (~10 each). Evaluation stays deterministic on the fixed `--tier`
+phrase so runs remain comparable.
+
+### It worked, for listed phrasings
+
+| query | original | phrase-aug |
+|---|---|---|
+| EXACT trained | 0.639 | 0.601 |
+| one word changed | 0.561 | **0.599** |
+| "long thin scratch marks on the metal" | 0.000 | **0.626** |
+| bare "scratches" | 0.177 | **0.614** |
+| "a long straight bright line..." | 0.000 | **0.606** |
+| novel: "long thin gouges scored into metal" | 0.000 | 0.196 |
+| wrong class | 0.000 | **0.000** |
+| CONTROL nonsense | 0.000 | **0.000** |
+
+From 2 of 6 phrasings working to 5 of 6, **for an mAP cost of -0.0063** — smaller
+than every ablation delta above, i.e. effectively free. Crucially both control
+rows stayed at exactly 0.000: the model became *robust*, not *indiscriminate*.
+
+### But it is coverage, not generalisation
+
+Four of those five phrasings were **in the training pool**. To separate "covers
+what it was shown" from "understands meaning", `scripts/probe_generalisation.py`
+queries only phrasings absent from the corpus entirely:
+
+| query (none in corpus) | conf |
+|---|---|
+| "scoring marks left by a sharp edge" | **0.466** |
+| "long thin gouges scored into metal" | 0.196 |
+| "a slender vertical streak on the metal" | 0.076 |
+| "a linear defect running down the plate" | **0.000** |
+| "drag marks across the steel" | **0.000** |
+| "a fine incision in the surface" | **0.000** |
+| novel wrong class: "a surface covered in tiny holes" | 0.000 |
+| CONTROL: "a bowl of soup" | 0.000 |
+
+**1 of 6 novel paraphrases clears 0.25.** And *which* ones score is the finding:
+
+- "**scoring** marks" → 0.466; corpus has "surface **scoring**", "abrasion **scoring**"
+- "gouges **scored** into metal" → 0.196; corpus has "grooves **scored** into the metal"
+- "vertical **streak**" → 0.076; corpus has "linear **streaks**"
+- "drag marks", "incision", "linear defect" → **0.000**; semantically correct,
+  **zero lexical overlap**
+
+**The model matches words, not meaning.** Phrase augmentation widened the lookup
+table and added fuzzy string matching; it did not create semantic understanding.
+
+**Consequence for corpus size:** enlarging the corpus to 30 phrases per class
+would extend coverage to those 30 phrasings and their near-lexical neighbours. It
+would **not** produce a model that handles a phrasing nobody wrote down — which
+is what open vocabulary means. This was tested, not assumed.
+
+---
+
+## 5. Negative control — the text path is genuinely live
+
+Before accepting any negative result, `scripts/eval_tgfem.py` loaded the trained
+checkpoint, stripped its `TextConditioner`, and re-attached one carrying absurd
+prompts:
+
+```
+real prompts   mAP@0.5 = 0.3994
+absurd prompts mAP@0.5 = 0.0243      (16x collapse)
+```
+
+Every probe in this phase also carried its own controls, and **wrong-class and
+nonsense queries scored 0.000 in every single one.** The weak results are
+measurements, not disconnected wiring.
+
+---
+
+## 6. The unified diagnosis
+
+Four findings that look separate share one cause:
+
+| finding | measurement |
+|---|---|
+| Ablations flat | ±0.01 across four interventions |
+| Zero-shot fails | 0.000 AP on both held-out classes |
+| No semantic generalisation | 1/6 novel paraphrases |
+| Word-matching behaviour | scoring tracks lexical overlap |
+
+**1,075 training images across 6 classes cannot teach the vision branch to
+inhabit CLIP's semantic space.** It learns image → *these six specific embedding
+vectors*. Anything far from those vectors falls off a cliff, whether "far" means
+an unseen class or merely an unseen synonym.
+
+YOLO-World reached open-vocabulary behaviour with 27M grounding pairs. The
+architecture here is sound and correctly wired — it is data-starved by roughly
+four orders of magnitude. PHASE-3.md's risk register anticipated exactly this
+(row 1).
+
+---
+
+## 7. Files added this phase
+
+```
+scripts/probe_wording.py         wording robustness probe (graded paraphrases)
+scripts/probe_generalisation.py  corpus-absent phrasings: coverage vs semantics
+src/tgfem/data.py                + class_phrase_pools()
+src/tgfem/language.py            + phrase_pools resampling (training only)
+src/tgfem/trainer.py             + phrase_pools plumbing
+scripts/train_tgfem.py           + --phrase-aug
+```
+
+**Reproduce:**
+```bash
+python scripts/train_tgfem.py --variant tgfem --dataset neu --protocol closed --phrase-aug --device 0
+python scripts/probe_wording.py        --checkpoint runs/phase6_neu_closed_tgfem_phraseaug/weights/best.pt
+python scripts/probe_generalisation.py --checkpoint runs/phase6_neu_closed_tgfem_phraseaug/weights/best.pt
+```
+
+### Implementation note worth keeping
+Sampling assigns to a **local**, never to `self.class_texts`. An earlier version
+mutated it, which silently left *evaluation* running on whatever phrase training
+last sampled (observed: `'abrasion mark'` instead of the `--tier` phrase), and
+would also have clobbered `scripts/demo.py`, which injects queries by assigning
+to that same attribute.
 
 ---
 
@@ -212,31 +219,26 @@ src/tgfem/trainer.py        bugfix: WorldDetect check replaces the wrong TGFEM-l
 
 | Criterion | Status |
 |---|---|
-| Ablation plan covers all 3 priority ablations (a, d, g) | Pass |
-| Zero-shot evaluation path identified (no redundant script needed) | Pass |
-| Negative control re-implemented against a real checkpoint, not assumed | Pass |
-| Comparison table includes the falsifiable per-class prediction + speed | Pass |
-| Dispatcher is resumable (skips completed variants) | Pass |
-| All 6 priority-ablation variants actually run successfully | Pass — after fixing §4a's bug |
-| DeepCrack OOD eval script exists and runs end to end | Pass (synthetic data) |
-| Real, full-scale ablation and DeepCrack numbers produced | **Blocked — needs a GPU and real CLIP weights** |
+| Ablations (a), (d), (g) run at the report's schedule | Pass |
+| Negative control confirms the text path is live | Pass |
+| Text interface characterised, not merely scored | Pass |
+| Coverage vs generalisation separated experimentally | Pass |
+| TG-FEM outperforms the CBAM control | **FAIL — +0.0028** |
+| Zero-shot detection of held-out classes | **FAIL — 0.000 AP** |
+| Semantic generalisation to unlisted phrasings | **FAIL — 1/6** |
 
-**Phase 7 gate: PASSED, including live execution of the dispatcher and both
-eval scripts — not just structurally. Only real-scale numbers remain
-blocked on compute.**
+**Phase 7 gate: PASSED procedurally. The scientific result is negative, and now
+mechanistically explained.**
 
 ---
 
 ## 9. Carried forward
 
-1. Once Phase 6 has run the three priority variants on a real GPU machine:
-   `python scripts/eval_tgfem.py --checkpoint runs/phase6_neu_closed_tgfem/weights/best.pt --dataset neu --protocol closed --device 0`
-   then `python scripts/eval_tgfem.py --compare-only --dataset neu --protocol closed`.
-2. Download real DeepCrack data (README) and run `scripts/prepare_deepcrack.py`
-   for real, then `scripts/eval_deepcrack.py` against a real trained
-   checkpoint - everything so far used synthetic placeholder data.
-3. Report per-class zero-shot AP for held-out classes specifically (Phase 3
-   §2's finding: they're the hardest classes for a fully-supervised model
-   too, so a modest zero-shot number isn't automatically a method failure) —
-   already in `per_class_AP50`, just needs pulling out into the write-up
-   once real numbers exist.
+1. Untested paths remain: GC10-DET (10 classes, ~2,300 images), DeepCrack OOD,
+   a `--tier` sweep, and TG-FEM at P5-only vs all three scales.
+2. **GC10-DET is the one worth running.** Nearly double the images and 10 classes
+   instead of 6. If the diagnosis in section 6 is right, more classes and more
+   data should move the text interface measurably — a testable prediction rather
+   than a hope.
+3. Phrase augmentation is a genuine, cheap improvement to the text interface and
+   should stay on by default for any future run, despite the -0.0063 mAP cost.

@@ -14,311 +14,1039 @@
     "usage_note": "Held-out classes MUST NOT contribute descriptions to any training-time vocabulary in the openvocab protocol. Filter with scripts/build_prompts.py --protocol openvocab.",
     "namespacing_note": "'inclusion' exists in both NEU-DET and GC10-DET as the same concept in different imaging regimes. GC10's is keyed 'gc10_inclusion'; NEU-DET's stays 'inclusion' within its own label space. See src/tgfem/data.py."
   },
-
   "classes": {
     "crazing": {
       "dataset": "neu-det",
       "canonical": "crazing",
       "held_out": true,
       "descriptions": [
-        {"tier": "bare", "text": "crazing"},
-        {"tier": "natural", "text": "crazing on a steel surface"},
-        {"tier": "natural", "text": "a network of fine cracks covering the metal surface"},
-        {"tier": "visual", "text": "an irregular web of hairline cracks spreading across the surface"},
-        {"tier": "visual", "text": "dense interconnected fine cracking with low contrast against the background"},
-        {"tier": "visual", "text": "a mesh-like pattern of shallow surface cracks"},
-        {"tier": "material", "text": "crazing on hot-rolled steel strip"},
-        {"tier": "material", "text": "thermal crack network formed on the rolled steel surface"},
-        {"tier": "alias", "text": "craze cracking"},
-        {"tier": "alias", "text": "crack network defect"}
+        {
+          "tier": "bare",
+          "text": "crazing"
+        },
+        {
+          "tier": "natural",
+          "text": "crazing on a steel surface"
+        },
+        {
+          "tier": "natural",
+          "text": "a network of fine cracks covering the metal surface"
+        },
+        {
+          "tier": "visual",
+          "text": "an irregular web of hairline cracks spreading across the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "dense interconnected fine cracking with low contrast against the background"
+        },
+        {
+          "tier": "visual",
+          "text": "a mesh-like pattern of shallow surface cracks"
+        },
+        {
+          "tier": "material",
+          "text": "crazing on hot-rolled steel strip"
+        },
+        {
+          "tier": "material",
+          "text": "thermal crack network formed on the rolled steel surface"
+        },
+        {
+          "tier": "alias",
+          "text": "craze cracking"
+        },
+        {
+          "tier": "alias",
+          "text": "crack network defect"
+        }
       ]
     },
-
     "inclusion": {
       "dataset": "neu-det",
       "canonical": "inclusion",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "inclusion"},
-        {"tier": "natural", "text": "an inclusion in the steel surface"},
-        {"tier": "natural", "text": "foreign material embedded in the metal"},
-        {"tier": "visual", "text": "a dark elongated streak embedded in the steel surface"},
-        {"tier": "visual", "text": "a narrow vertical dark band of impurity in the metal"},
-        {"tier": "visual", "text": "an elongated dark blemish running along the rolling direction"},
-        {"tier": "material", "text": "non-metallic inclusion in hot-rolled steel"},
-        {"tier": "material", "text": "slag inclusion pressed into the steel strip during rolling"},
-        {"tier": "alias", "text": "embedded impurity"},
-        {"tier": "alias", "text": "non-metallic particle defect"}
+        {
+          "tier": "bare",
+          "text": "inclusion"
+        },
+        {
+          "tier": "natural",
+          "text": "an inclusion in the steel surface"
+        },
+        {
+          "tier": "natural",
+          "text": "foreign material embedded in the metal"
+        },
+        {
+          "tier": "visual",
+          "text": "a dark elongated streak embedded in the steel surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a narrow vertical dark band of impurity in the metal"
+        },
+        {
+          "tier": "visual",
+          "text": "an elongated dark blemish running along the rolling direction"
+        },
+        {
+          "tier": "material",
+          "text": "non-metallic inclusion in hot-rolled steel"
+        },
+        {
+          "tier": "material",
+          "text": "slag inclusion pressed into the steel strip during rolling"
+        },
+        {
+          "tier": "alias",
+          "text": "embedded impurity"
+        },
+        {
+          "tier": "alias",
+          "text": "non-metallic particle defect"
+        }
       ]
     },
-
     "patches": {
       "dataset": "neu-det",
       "canonical": "patches",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "patches"},
-        {"tier": "natural", "text": "surface patches on the steel"},
-        {"tier": "natural", "text": "irregular discoloured areas on the metal surface"},
-        {"tier": "visual", "text": "irregular dark blotches spread over the steel surface"},
-        {"tier": "visual", "text": "large uneven patches of darker tone against a lighter background"},
-        {"tier": "visual", "text": "cloudy regions of contrasting shade on the metal"},
-        {"tier": "material", "text": "surface patch defect on hot-rolled steel strip"},
-        {"tier": "material", "text": "localised oxidation patches on the rolled surface"},
-        {"tier": "alias", "text": "surface blotches"},
-        {"tier": "alias", "text": "discolouration patch"}
+        {
+          "tier": "bare",
+          "text": "patches"
+        },
+        {
+          "tier": "natural",
+          "text": "surface patches on the steel"
+        },
+        {
+          "tier": "natural",
+          "text": "irregular discoloured areas on the metal surface"
+        },
+        {
+          "tier": "visual",
+          "text": "irregular dark blotches spread over the steel surface"
+        },
+        {
+          "tier": "visual",
+          "text": "large uneven patches of darker tone against a lighter background"
+        },
+        {
+          "tier": "visual",
+          "text": "cloudy regions of contrasting shade on the metal"
+        },
+        {
+          "tier": "material",
+          "text": "surface patch defect on hot-rolled steel strip"
+        },
+        {
+          "tier": "material",
+          "text": "localised oxidation patches on the rolled surface"
+        },
+        {
+          "tier": "alias",
+          "text": "surface blotches"
+        },
+        {
+          "tier": "alias",
+          "text": "discolouration patch"
+        }
       ]
     },
-
     "pitted_surface": {
       "dataset": "neu-det",
       "canonical": "pitted surface",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "pitted surface"},
-        {"tier": "natural", "text": "a pitted steel surface"},
-        {"tier": "natural", "text": "a surface covered in small pits and holes"},
-        {"tier": "visual", "text": "densely scattered small cavities across the metal surface"},
-        {"tier": "visual", "text": "a rough surface speckled with numerous tiny dark pits"},
-        {"tier": "visual", "text": "widespread fine pitting giving a porous appearance"},
-        {"tier": "material", "text": "corrosion pitting on a steel plate"},
-        {"tier": "material", "text": "pitting damage across hot-rolled steel strip"},
-        {"tier": "alias", "text": "corrosion pitting"},
-        {"tier": "alias", "text": "pitting corrosion"}
+        {
+          "tier": "bare",
+          "text": "pitted surface"
+        },
+        {
+          "tier": "natural",
+          "text": "a pitted steel surface"
+        },
+        {
+          "tier": "natural",
+          "text": "a surface covered in small pits and holes"
+        },
+        {
+          "tier": "visual",
+          "text": "densely scattered small cavities across the metal surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a rough surface speckled with numerous tiny dark pits"
+        },
+        {
+          "tier": "visual",
+          "text": "widespread fine pitting giving a porous appearance"
+        },
+        {
+          "tier": "material",
+          "text": "corrosion pitting on a steel plate"
+        },
+        {
+          "tier": "material",
+          "text": "pitting damage across hot-rolled steel strip"
+        },
+        {
+          "tier": "alias",
+          "text": "corrosion pitting"
+        },
+        {
+          "tier": "alias",
+          "text": "pitting corrosion"
+        }
       ]
     },
-
     "rolled-in_scale": {
       "dataset": "neu-det",
       "canonical": "rolled-in scale",
       "held_out": true,
       "descriptions": [
-        {"tier": "bare", "text": "rolled-in scale"},
-        {"tier": "natural", "text": "rolled-in scale on steel"},
-        {"tier": "natural", "text": "oxide scale pressed into the metal surface"},
-        {"tier": "visual", "text": "dark irregular flakes embedded into the steel surface"},
-        {"tier": "visual", "text": "scattered dark scale fragments rolled flat into the surface"},
-        {"tier": "visual", "text": "patchy dark oxide residue fused to the metal"},
-        {"tier": "material", "text": "rolled-in scale on hot-rolled steel strip"},
-        {"tier": "material", "text": "mill scale pressed into the strip during hot rolling"},
-        {"tier": "alias", "text": "mill scale defect"},
-        {"tier": "alias", "text": "embedded oxide scale"}
+        {
+          "tier": "bare",
+          "text": "rolled-in scale"
+        },
+        {
+          "tier": "natural",
+          "text": "rolled-in scale on steel"
+        },
+        {
+          "tier": "natural",
+          "text": "oxide scale pressed into the metal surface"
+        },
+        {
+          "tier": "visual",
+          "text": "dark irregular flakes embedded into the steel surface"
+        },
+        {
+          "tier": "visual",
+          "text": "scattered dark scale fragments rolled flat into the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "patchy dark oxide residue fused to the metal"
+        },
+        {
+          "tier": "material",
+          "text": "rolled-in scale on hot-rolled steel strip"
+        },
+        {
+          "tier": "material",
+          "text": "mill scale pressed into the strip during hot rolling"
+        },
+        {
+          "tier": "alias",
+          "text": "mill scale defect"
+        },
+        {
+          "tier": "alias",
+          "text": "embedded oxide scale"
+        }
       ]
     },
-
     "scratches": {
       "dataset": "neu-det",
       "canonical": "scratches",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "scratches"},
-        {"tier": "natural", "text": "scratches on the steel surface"},
-        {"tier": "natural", "text": "long thin scratch marks on the metal"},
-        {"tier": "visual", "text": "a long straight bright line running across the surface"},
-        {"tier": "visual", "text": "narrow elongated grooves scored into the metal"},
-        {"tier": "visual", "text": "thin high-contrast linear streaks along the rolling direction"},
-        {"tier": "material", "text": "mechanical scratch on hot-rolled steel strip"},
-        {"tier": "material", "text": "abrasion scoring from roller contact"},
-        {"tier": "alias", "text": "surface scoring"},
-        {"tier": "alias", "text": "abrasion mark"}
+        {
+          "tier": "bare",
+          "text": "scratches"
+        },
+        {
+          "tier": "natural",
+          "text": "scratches on the steel surface"
+        },
+        {
+          "tier": "natural",
+          "text": "long thin scratch marks on the metal"
+        },
+        {
+          "tier": "visual",
+          "text": "a long straight bright line running across the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "narrow elongated grooves scored into the metal"
+        },
+        {
+          "tier": "visual",
+          "text": "thin high-contrast linear streaks along the rolling direction"
+        },
+        {
+          "tier": "material",
+          "text": "mechanical scratch on hot-rolled steel strip"
+        },
+        {
+          "tier": "material",
+          "text": "abrasion scoring from roller contact"
+        },
+        {
+          "tier": "alias",
+          "text": "surface scoring"
+        },
+        {
+          "tier": "alias",
+          "text": "abrasion mark"
+        }
       ]
     },
-
     "crease": {
       "dataset": "gc10-det",
       "canonical": "crease",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "crease"},
-        {"tier": "natural", "text": "a crease in the steel sheet"},
-        {"tier": "natural", "text": "a folded line running across the metal strip"},
-        {"tier": "visual", "text": "a sharp straight fold line across the sheet surface"},
-        {"tier": "visual", "text": "a narrow horizontal band where the metal has been folded"},
-        {"tier": "visual", "text": "a linear ridge left by the sheet doubling over on itself"},
-        {"tier": "material", "text": "crease defect on cold-rolled steel sheet"},
-        {"tier": "material", "text": "fold mark formed while coiling the steel strip"},
-        {"tier": "alias", "text": "fold line"},
-        {"tier": "alias", "text": "sheet crease mark"}
+        {
+          "tier": "bare",
+          "text": "crease"
+        },
+        {
+          "tier": "natural",
+          "text": "a crease in the steel sheet"
+        },
+        {
+          "tier": "natural",
+          "text": "a folded line running across the metal strip"
+        },
+        {
+          "tier": "visual",
+          "text": "a sharp straight fold line across the sheet surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a narrow horizontal band where the metal has been folded"
+        },
+        {
+          "tier": "visual",
+          "text": "a linear ridge left by the sheet doubling over on itself"
+        },
+        {
+          "tier": "material",
+          "text": "crease defect on cold-rolled steel sheet"
+        },
+        {
+          "tier": "material",
+          "text": "fold mark formed while coiling the steel strip"
+        },
+        {
+          "tier": "alias",
+          "text": "fold line"
+        },
+        {
+          "tier": "alias",
+          "text": "sheet crease mark"
+        }
       ]
     },
-
     "crescent_gap": {
       "dataset": "gc10-det",
       "canonical": "crescent gap",
       "held_out": true,
       "descriptions": [
-        {"tier": "bare", "text": "crescent gap"},
-        {"tier": "natural", "text": "a crescent-shaped gap at the strip edge"},
-        {"tier": "natural", "text": "a curved notch missing from the edge of the steel sheet"},
-        {"tier": "visual", "text": "a smooth half-moon cutout along the sheet border"},
-        {"tier": "visual", "text": "a dark curved bite taken out of the metal edge"},
-        {"tier": "visual", "text": "an arc-shaped void interrupting the straight strip edge"},
-        {"tier": "material", "text": "crescent gap on cold-rolled steel strip"},
-        {"tier": "material", "text": "edge break formed during shearing of the steel sheet"},
-        {"tier": "alias", "text": "moon-shaped edge defect"},
-        {"tier": "alias", "text": "edge notch"}
+        {
+          "tier": "bare",
+          "text": "crescent gap"
+        },
+        {
+          "tier": "natural",
+          "text": "a crescent-shaped gap at the strip edge"
+        },
+        {
+          "tier": "natural",
+          "text": "a curved notch missing from the edge of the steel sheet"
+        },
+        {
+          "tier": "visual",
+          "text": "a smooth half-moon cutout along the sheet border"
+        },
+        {
+          "tier": "visual",
+          "text": "a dark curved bite taken out of the metal edge"
+        },
+        {
+          "tier": "visual",
+          "text": "an arc-shaped void interrupting the straight strip edge"
+        },
+        {
+          "tier": "material",
+          "text": "crescent gap on cold-rolled steel strip"
+        },
+        {
+          "tier": "material",
+          "text": "edge break formed during shearing of the steel sheet"
+        },
+        {
+          "tier": "alias",
+          "text": "moon-shaped edge defect"
+        },
+        {
+          "tier": "alias",
+          "text": "edge notch"
+        }
       ]
     },
-
     "gc10_inclusion": {
       "dataset": "gc10-det",
       "canonical": "inclusion",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "steel sheet inclusion"},
-        {"tier": "natural", "text": "an inclusion on the steel sheet"},
-        {"tier": "natural", "text": "a foreign particle pressed into the sheet surface"},
-        {"tier": "visual", "text": "a small dark speck embedded in the rolled sheet"},
-        {"tier": "visual", "text": "isolated dark inclusions scattered on a bright sheet surface"},
-        {"tier": "visual", "text": "compact dark blemishes set into the metal"},
-        {"tier": "material", "text": "non-metallic inclusion on cold-rolled steel sheet"},
-        {"tier": "material", "text": "impurity rolled into the sheet during production"},
-        {"tier": "alias", "text": "foreign body defect"},
-        {"tier": "alias", "text": "sheet impurity"}
+        {
+          "tier": "bare",
+          "text": "steel sheet inclusion"
+        },
+        {
+          "tier": "natural",
+          "text": "an inclusion on the steel sheet"
+        },
+        {
+          "tier": "natural",
+          "text": "a foreign particle pressed into the sheet surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a small dark speck embedded in the rolled sheet"
+        },
+        {
+          "tier": "visual",
+          "text": "isolated dark inclusions scattered on a bright sheet surface"
+        },
+        {
+          "tier": "visual",
+          "text": "compact dark blemishes set into the metal"
+        },
+        {
+          "tier": "material",
+          "text": "non-metallic inclusion on cold-rolled steel sheet"
+        },
+        {
+          "tier": "material",
+          "text": "impurity rolled into the sheet during production"
+        },
+        {
+          "tier": "alias",
+          "text": "foreign body defect"
+        },
+        {
+          "tier": "alias",
+          "text": "sheet impurity"
+        }
       ]
     },
-
     "oil_spot": {
       "dataset": "gc10-det",
       "canonical": "oil spot",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "oil spot"},
-        {"tier": "natural", "text": "an oil spot on the steel sheet"},
-        {"tier": "natural", "text": "an oily stain on the metal surface"},
-        {"tier": "visual", "text": "a dark smudged stain with soft irregular edges"},
-        {"tier": "visual", "text": "a glossy dark residue smeared across the sheet"},
-        {"tier": "visual", "text": "a diffuse dark blotch with no sharp boundary"},
-        {"tier": "material", "text": "lubricant oil contamination on cold-rolled steel"},
-        {"tier": "material", "text": "rolling oil residue left on the strip surface"},
-        {"tier": "alias", "text": "oil stain"},
-        {"tier": "alias", "text": "grease mark"}
+        {
+          "tier": "bare",
+          "text": "oil spot"
+        },
+        {
+          "tier": "natural",
+          "text": "an oil spot on the steel sheet"
+        },
+        {
+          "tier": "natural",
+          "text": "an oily stain on the metal surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a dark smudged stain with soft irregular edges"
+        },
+        {
+          "tier": "visual",
+          "text": "a glossy dark residue smeared across the sheet"
+        },
+        {
+          "tier": "visual",
+          "text": "a diffuse dark blotch with no sharp boundary"
+        },
+        {
+          "tier": "material",
+          "text": "lubricant oil contamination on cold-rolled steel"
+        },
+        {
+          "tier": "material",
+          "text": "rolling oil residue left on the strip surface"
+        },
+        {
+          "tier": "alias",
+          "text": "oil stain"
+        },
+        {
+          "tier": "alias",
+          "text": "grease mark"
+        }
       ]
     },
-
     "punching_hole": {
       "dataset": "gc10-det",
       "canonical": "punching hole",
       "held_out": true,
       "descriptions": [
-        {"tier": "bare", "text": "punching hole"},
-        {"tier": "natural", "text": "a punched hole in the steel sheet"},
-        {"tier": "natural", "text": "a small round hole through the metal"},
-        {"tier": "visual", "text": "a sharply defined dark circular opening in the sheet"},
-        {"tier": "visual", "text": "a small black round void with a clean edge"},
-        {"tier": "visual", "text": "an isolated perforation piercing the metal surface"},
-        {"tier": "material", "text": "punch hole defect on cold-rolled steel sheet"},
-        {"tier": "material", "text": "hole left by the punching press during processing"},
-        {"tier": "alias", "text": "perforation"},
-        {"tier": "alias", "text": "punched opening"}
+        {
+          "tier": "bare",
+          "text": "punching hole"
+        },
+        {
+          "tier": "natural",
+          "text": "a punched hole in the steel sheet"
+        },
+        {
+          "tier": "natural",
+          "text": "a small round hole through the metal"
+        },
+        {
+          "tier": "visual",
+          "text": "a sharply defined dark circular opening in the sheet"
+        },
+        {
+          "tier": "visual",
+          "text": "a small black round void with a clean edge"
+        },
+        {
+          "tier": "visual",
+          "text": "an isolated perforation piercing the metal surface"
+        },
+        {
+          "tier": "material",
+          "text": "punch hole defect on cold-rolled steel sheet"
+        },
+        {
+          "tier": "material",
+          "text": "hole left by the punching press during processing"
+        },
+        {
+          "tier": "alias",
+          "text": "perforation"
+        },
+        {
+          "tier": "alias",
+          "text": "punched opening"
+        }
       ]
     },
-
     "rolled_pit": {
       "dataset": "gc10-det",
       "canonical": "rolled pit",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "rolled pit"},
-        {"tier": "natural", "text": "a rolled pit on the steel sheet"},
-        {"tier": "natural", "text": "a small indentation pressed into the metal"},
-        {"tier": "visual", "text": "a shallow dark depression stamped into the surface"},
-        {"tier": "visual", "text": "a compact pitted dent repeating along the strip"},
-        {"tier": "visual", "text": "a small crater-like mark impressed in the sheet"},
-        {"tier": "material", "text": "roll-induced pit on cold-rolled steel sheet"},
-        {"tier": "material", "text": "indentation transferred from a damaged work roll"},
-        {"tier": "alias", "text": "roll mark pit"},
-        {"tier": "alias", "text": "pressed indentation"}
+        {
+          "tier": "bare",
+          "text": "rolled pit"
+        },
+        {
+          "tier": "natural",
+          "text": "a rolled pit on the steel sheet"
+        },
+        {
+          "tier": "natural",
+          "text": "a small indentation pressed into the metal"
+        },
+        {
+          "tier": "visual",
+          "text": "a shallow dark depression stamped into the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a compact pitted dent repeating along the strip"
+        },
+        {
+          "tier": "visual",
+          "text": "a small crater-like mark impressed in the sheet"
+        },
+        {
+          "tier": "material",
+          "text": "roll-induced pit on cold-rolled steel sheet"
+        },
+        {
+          "tier": "material",
+          "text": "indentation transferred from a damaged work roll"
+        },
+        {
+          "tier": "alias",
+          "text": "roll mark pit"
+        },
+        {
+          "tier": "alias",
+          "text": "pressed indentation"
+        }
       ]
     },
-
     "silk_spot": {
       "dataset": "gc10-det",
       "canonical": "silk spot",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "silk spot"},
-        {"tier": "natural", "text": "a silk spot on the steel sheet"},
-        {"tier": "natural", "text": "faint silky streaks on the metal surface"},
-        {"tier": "visual", "text": "pale wispy streaks with a fibrous silk-like texture"},
-        {"tier": "visual", "text": "soft elongated light marks running along the rolling direction"},
-        {"tier": "visual", "text": "delicate low-contrast striations across the sheet"},
-        {"tier": "material", "text": "silk spot defect on cold-rolled steel sheet"},
-        {"tier": "material", "text": "fibrous surface marking from uneven rolling"},
-        {"tier": "alias", "text": "silky streak"},
-        {"tier": "alias", "text": "fibre-like surface mark"}
+        {
+          "tier": "bare",
+          "text": "silk spot"
+        },
+        {
+          "tier": "natural",
+          "text": "a silk spot on the steel sheet"
+        },
+        {
+          "tier": "natural",
+          "text": "faint silky streaks on the metal surface"
+        },
+        {
+          "tier": "visual",
+          "text": "pale wispy streaks with a fibrous silk-like texture"
+        },
+        {
+          "tier": "visual",
+          "text": "soft elongated light marks running along the rolling direction"
+        },
+        {
+          "tier": "visual",
+          "text": "delicate low-contrast striations across the sheet"
+        },
+        {
+          "tier": "material",
+          "text": "silk spot defect on cold-rolled steel sheet"
+        },
+        {
+          "tier": "material",
+          "text": "fibrous surface marking from uneven rolling"
+        },
+        {
+          "tier": "alias",
+          "text": "silky streak"
+        },
+        {
+          "tier": "alias",
+          "text": "fibre-like surface mark"
+        }
       ]
     },
-
     "waist_folding": {
       "dataset": "gc10-det",
       "canonical": "waist folding",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "waist folding"},
-        {"tier": "natural", "text": "waist folding on the steel sheet"},
-        {"tier": "natural", "text": "wrinkled folds across the middle of the strip"},
-        {"tier": "visual", "text": "a series of parallel fold lines banding across the sheet"},
-        {"tier": "visual", "text": "repeated wrinkle ridges running transverse to the strip"},
-        {"tier": "visual", "text": "a corrugated band of folds through the sheet centre"},
-        {"tier": "material", "text": "waist fold defect on cold-rolled steel strip"},
-        {"tier": "material", "text": "transverse buckling formed during strip tensioning"},
-        {"tier": "alias", "text": "waist wrinkle"},
-        {"tier": "alias", "text": "transverse fold band"}
+        {
+          "tier": "bare",
+          "text": "waist folding"
+        },
+        {
+          "tier": "natural",
+          "text": "waist folding on the steel sheet"
+        },
+        {
+          "tier": "natural",
+          "text": "wrinkled folds across the middle of the strip"
+        },
+        {
+          "tier": "visual",
+          "text": "a series of parallel fold lines banding across the sheet"
+        },
+        {
+          "tier": "visual",
+          "text": "repeated wrinkle ridges running transverse to the strip"
+        },
+        {
+          "tier": "visual",
+          "text": "a corrugated band of folds through the sheet centre"
+        },
+        {
+          "tier": "material",
+          "text": "waist fold defect on cold-rolled steel strip"
+        },
+        {
+          "tier": "material",
+          "text": "transverse buckling formed during strip tensioning"
+        },
+        {
+          "tier": "alias",
+          "text": "waist wrinkle"
+        },
+        {
+          "tier": "alias",
+          "text": "transverse fold band"
+        }
       ]
     },
-
     "water_spot": {
       "dataset": "gc10-det",
       "canonical": "water spot",
       "held_out": false,
       "descriptions": [
-        {"tier": "bare", "text": "water spot"},
-        {"tier": "natural", "text": "a water spot on the steel sheet"},
-        {"tier": "natural", "text": "a dried water stain on the metal surface"},
-        {"tier": "visual", "text": "a pale irregular stain with a faint outline"},
-        {"tier": "visual", "text": "a light streaky residue left by evaporated liquid"},
-        {"tier": "visual", "text": "a soft-edged blotch slightly lighter than the surrounding metal"},
-        {"tier": "material", "text": "water stain on cold-rolled steel sheet"},
-        {"tier": "material", "text": "residue from incomplete drying after strip cleaning"},
-        {"tier": "alias", "text": "water mark"},
-        {"tier": "alias", "text": "moisture stain"}
+        {
+          "tier": "bare",
+          "text": "water spot"
+        },
+        {
+          "tier": "natural",
+          "text": "a water spot on the steel sheet"
+        },
+        {
+          "tier": "natural",
+          "text": "a dried water stain on the metal surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a pale irregular stain with a faint outline"
+        },
+        {
+          "tier": "visual",
+          "text": "a light streaky residue left by evaporated liquid"
+        },
+        {
+          "tier": "visual",
+          "text": "a soft-edged blotch slightly lighter than the surrounding metal"
+        },
+        {
+          "tier": "material",
+          "text": "water stain on cold-rolled steel sheet"
+        },
+        {
+          "tier": "material",
+          "text": "residue from incomplete drying after strip cleaning"
+        },
+        {
+          "tier": "alias",
+          "text": "water mark"
+        },
+        {
+          "tier": "alias",
+          "text": "moisture stain"
+        }
       ]
     },
-
     "welding_line": {
       "dataset": "gc10-det",
       "canonical": "welding line",
       "held_out": true,
       "descriptions": [
-        {"tier": "bare", "text": "welding line"},
-        {"tier": "natural", "text": "a welding line across the steel strip"},
-        {"tier": "natural", "text": "a weld seam joining two lengths of sheet"},
-        {"tier": "visual", "text": "a long straight horizontal seam spanning the full sheet width"},
-        {"tier": "visual", "text": "a continuous narrow band crossing the entire strip"},
-        {"tier": "visual", "text": "a raised linear join running edge to edge"},
-        {"tier": "material", "text": "coil joining weld on cold-rolled steel strip"},
-        {"tier": "material", "text": "butt weld seam between two steel coils"},
-        {"tier": "alias", "text": "weld seam"},
-        {"tier": "alias", "text": "strip joint weld"}
+        {
+          "tier": "bare",
+          "text": "welding line"
+        },
+        {
+          "tier": "natural",
+          "text": "a welding line across the steel strip"
+        },
+        {
+          "tier": "natural",
+          "text": "a weld seam joining two lengths of sheet"
+        },
+        {
+          "tier": "visual",
+          "text": "a long straight horizontal seam spanning the full sheet width"
+        },
+        {
+          "tier": "visual",
+          "text": "a continuous narrow band crossing the entire strip"
+        },
+        {
+          "tier": "visual",
+          "text": "a raised linear join running edge to edge"
+        },
+        {
+          "tier": "material",
+          "text": "coil joining weld on cold-rolled steel strip"
+        },
+        {
+          "tier": "material",
+          "text": "butt weld seam between two steel coils"
+        },
+        {
+          "tier": "alias",
+          "text": "weld seam"
+        },
+        {
+          "tier": "alias",
+          "text": "strip joint weld"
+        }
       ]
     },
-
     "crack": {
       "dataset": "deepcrack",
       "canonical": "crack",
       "held_out": true,
       "descriptions": [
-        {"tier": "bare", "text": "crack"},
-        {"tier": "natural", "text": "a crack in the concrete surface"},
-        {"tier": "natural", "text": "a thin fracture line running across the pavement"},
-        {"tier": "visual", "text": "a long dark jagged line splitting the surface"},
-        {"tier": "visual", "text": "a narrow branching fissure winding across the material"},
-        {"tier": "visual", "text": "a thin high-contrast fracture against a textured background"},
-        {"tier": "material", "text": "structural crack in a concrete surface"},
-        {"tier": "material", "text": "fatigue crack in asphalt pavement"},
-        {"tier": "alias", "text": "surface fissure"},
-        {"tier": "alias", "text": "fracture line"}
+        {
+          "tier": "bare",
+          "text": "crack"
+        },
+        {
+          "tier": "natural",
+          "text": "a crack in the concrete surface"
+        },
+        {
+          "tier": "natural",
+          "text": "a thin fracture line running across the pavement"
+        },
+        {
+          "tier": "visual",
+          "text": "a long dark jagged line splitting the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a narrow branching fissure winding across the material"
+        },
+        {
+          "tier": "visual",
+          "text": "a thin high-contrast fracture against a textured background"
+        },
+        {
+          "tier": "material",
+          "text": "structural crack in a concrete surface"
+        },
+        {
+          "tier": "material",
+          "text": "fatigue crack in asphalt pavement"
+        },
+        {
+          "tier": "alias",
+          "text": "surface fissure"
+        },
+        {
+          "tier": "alias",
+          "text": "fracture line"
+        }
+      ]
+    },
+    "efflorescence": {
+      "dataset": "concrete-defect-roboflow",
+      "canonical": "efflorescence",
+      "held_out": false,
+      "descriptions": [
+        {
+          "tier": "bare",
+          "text": "efflorescence"
+        },
+        {
+          "tier": "natural",
+          "text": "efflorescence on the concrete surface"
+        },
+        {
+          "tier": "natural",
+          "text": "white salt deposits leaching out of the concrete"
+        },
+        {
+          "tier": "visual",
+          "text": "a chalky white bloom spreading across the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "pale crystalline staining seeping from the material"
+        },
+        {
+          "tier": "visual",
+          "text": "a white powdery patch on a grey surface"
+        },
+        {
+          "tier": "material",
+          "text": "efflorescence on a concrete structure"
+        },
+        {
+          "tier": "material",
+          "text": "salt crystallisation on cementitious material"
+        },
+        {
+          "tier": "alias",
+          "text": "salt bloom"
+        },
+        {
+          "tier": "alias",
+          "text": "lime staining"
+        }
+      ]
+    },
+    "spalling": {
+      "dataset": "concrete-defect-roboflow",
+      "canonical": "spalling",
+      "held_out": false,
+      "descriptions": [
+        {
+          "tier": "bare",
+          "text": "spalling"
+        },
+        {
+          "tier": "natural",
+          "text": "spalling on the concrete surface"
+        },
+        {
+          "tier": "natural",
+          "text": "concrete broken away from the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a crater where material has flaked off the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a rough patch where the surface layer has broken away"
+        },
+        {
+          "tier": "visual",
+          "text": "an irregular depression exposing coarse aggregate"
+        },
+        {
+          "tier": "material",
+          "text": "spalled concrete on a structural element"
+        },
+        {
+          "tier": "material",
+          "text": "surface fragmentation of a concrete member"
+        },
+        {
+          "tier": "alias",
+          "text": "concrete break-off"
+        },
+        {
+          "tier": "alias",
+          "text": "surface flaking"
+        }
+      ]
+    },
+    "scaling": {
+      "dataset": "concrete-defect-roboflow",
+      "canonical": "scaling",
+      "held_out": false,
+      "descriptions": [
+        {
+          "tier": "bare",
+          "text": "scaling"
+        },
+        {
+          "tier": "natural",
+          "text": "scaling on the concrete surface"
+        },
+        {
+          "tier": "natural",
+          "text": "the surface layer of concrete peeling away"
+        },
+        {
+          "tier": "visual",
+          "text": "a shallow flaked area across the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "a patchy loss of the outer layer"
+        },
+        {
+          "tier": "visual",
+          "text": "a roughened region where the finish has worn off"
+        },
+        {
+          "tier": "material",
+          "text": "scaling on a concrete slab"
+        },
+        {
+          "tier": "material",
+          "text": "surface mortar loss on cementitious material"
+        },
+        {
+          "tier": "alias",
+          "text": "surface peeling"
+        },
+        {
+          "tier": "alias",
+          "text": "concrete scaling"
+        }
+      ]
+    },
+    "exposed_reinforcement": {
+      "dataset": "concrete-defect-roboflow",
+      "canonical": "exposed reinforcement",
+      "held_out": false,
+      "descriptions": [
+        {
+          "tier": "bare",
+          "text": "exposed reinforcement"
+        },
+        {
+          "tier": "natural",
+          "text": "exposed reinforcement bars in the concrete"
+        },
+        {
+          "tier": "natural",
+          "text": "steel rebar visible through the concrete"
+        },
+        {
+          "tier": "visual",
+          "text": "parallel metal bars showing through a broken surface"
+        },
+        {
+          "tier": "visual",
+          "text": "rusted rods protruding from the material"
+        },
+        {
+          "tier": "visual",
+          "text": "exposed metal ribbing inside a cavity"
+        },
+        {
+          "tier": "material",
+          "text": "exposed reinforcement in a concrete structure"
+        },
+        {
+          "tier": "material",
+          "text": "corroded steel reinforcement in a concrete member"
+        },
+        {
+          "tier": "alias",
+          "text": "exposed rebar"
+        },
+        {
+          "tier": "alias",
+          "text": "visible reinforcement"
+        }
+      ]
+    },
+    "rust_stain": {
+      "dataset": "concrete-defect-roboflow",
+      "canonical": "rust stain",
+      "held_out": false,
+      "descriptions": [
+        {
+          "tier": "bare",
+          "text": "rust stain"
+        },
+        {
+          "tier": "natural",
+          "text": "rust staining on the concrete surface"
+        },
+        {
+          "tier": "natural",
+          "text": "brown rust marks running down the concrete"
+        },
+        {
+          "tier": "visual",
+          "text": "reddish-brown streaks discolouring the surface"
+        },
+        {
+          "tier": "visual",
+          "text": "an orange stain bleeding across the material"
+        },
+        {
+          "tier": "visual",
+          "text": "rust-coloured runoff marks on a grey surface"
+        },
+        {
+          "tier": "material",
+          "text": "corrosion staining on a concrete structure"
+        },
+        {
+          "tier": "material",
+          "text": "iron oxide staining on cementitious material"
+        },
+        {
+          "tier": "alias",
+          "text": "corrosion stain"
+        },
+        {
+          "tier": "alias",
+          "text": "rust discolouration"
+        }
       ]
     }
   }

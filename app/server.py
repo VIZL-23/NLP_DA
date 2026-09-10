@@ -60,6 +60,12 @@ class ModelSpec:
     label: str
     blurb: str
     run: str
+    # Confidence the UI starts at for THIS model. Not cosmetic: measured hit
+    # rate on single-class test images is 53% at 0.25 but 80% at 0.10 for the
+    # concrete model, whose boxes are looser and whose scores therefore run
+    # lower than the steel models'. One global default makes a working model
+    # look broken.
+    default_conf: float = 0.25
     detector: DefectDetector | None = field(default=None, repr=False)
 
     @property
@@ -81,6 +87,8 @@ MODELS = [
               "phase6_neu_crack_closed_tgfem_phraseaug"),
     ModelSpec("gc10", "Steel · GC10-DET", "10 classes · galvanised steel sheet",
               "phase6_gc10_closed_tgfem_phraseaug"),
+    ModelSpec("concrete", "Concrete · structural", "6 classes · spalling, rebar, efflorescence",
+              "phase6_concrete_closed_tgfem_phraseaug", default_conf=0.10),
 ]
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -125,6 +133,7 @@ def info():
             "key": s.key,
             "label": s.label,
             "blurb": s.blurb,
+            "default_conf": s.default_conf,
             "samples": discover_samples(s.sample_dir),
             **s.detector.info(),
         } for s in _loaded.values()],

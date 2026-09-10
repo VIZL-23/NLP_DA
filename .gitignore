@@ -35,6 +35,7 @@ datasets/deepcrack-yolo/
 datasets/combined-yolo/
 datasets/crack-merged-yolo/
 datasets/neu-crack-yolo/
+datasets/concrete-yolo/
 
 # --- Newly added source datasets (download separately, do NOT commit) ---
 # NEU-DET and SDNET2018 predate this rule and stay tracked for continuity.
@@ -50,6 +51,18 @@ datasets/CRACK500/
 # fire on crack-free concrete. Untracked with `git rm -r --cached` (local copy
 # kept); this line stops it being re-added.
 datasets/SDNET2018/
+# Roboflow "Concrete defect detection" export (CC BY 4.0), 217 MB extracted.
+# Re-downloadable from Roboflow Universe in YOLOv11 format; rebuild the project
+# layout with scripts/prepare_concrete.py.
+datasets/concrete-defect-roboflow/
+# Any dataset archive. These are always large and always re-downloadable - a
+# 363 MB parquet in a commit is what made an earlier push unpushable, since
+# GitHub hard-rejects files over 100 MB.
+datasets/*.zip
+datasets/*.tar
+datasets/*.tar.gz
+datasets/*.7z
+datasets/*.rar
 
 # --- Environment / secrets ---
 .env

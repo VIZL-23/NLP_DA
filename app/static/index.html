@@ -338,6 +338,12 @@ function selectModel(key){
   const n = MODEL.trained_vocabulary.length;
   $('emptyVocab').textContent = n + (n === 1 ? ' defect type' : ' defect types');
 
+  // Each model starts at its own measured confidence - see ModelSpec.default_conf.
+  if (MODEL.default_conf != null) {
+    $('conf').value = MODEL.default_conf;
+    $('confVal').textContent = (+MODEL.default_conf).toFixed(2);
+  }
+
   $('vocab').innerHTML = '';
   MODEL.trained_vocabulary.forEach(p => {
     const c = document.createElement('button');

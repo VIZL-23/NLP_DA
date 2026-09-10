@@ -70,6 +70,12 @@ DATA_YAML = {
     # is not text-guided at all (PHASE-9.md section 4), and this is the test of
     # whether giving crack six steel classes to compete against fixes that.
     ("neu_crack", "closed"): REPO_ROOT / "datasets" / "neu-crack-yolo" / "neucrack_closed.yaml",
+    # Concrete structural defects, 6 classes (Roboflow export, CC BY 4.0).
+    # Kept SEPARATE from neu_crack on purpose: its classes sit on the same
+    # material as `crack` and are plausibly confusable with it, which is the
+    # NEU+GC10 situation that measurably hurt both taxonomies (PHASE-9.md
+    # section 1). Training it alone contains that risk to this model.
+    ("concrete", "closed"): REPO_ROOT / "datasets" / "concrete-yolo" / "concrete_closed.yaml",
 }
 
 # Which scripts/prepare_*.py builds each dataset, for the error message when one
@@ -77,6 +83,7 @@ DATA_YAML = {
 PREPARE_SCRIPT = {
     "neu": "neu_det", "gc10": "gc10", "combined": "combined",
     "deepcrack": "deepcrack", "crack": "crack_merged", "neu_crack": "neu_crack",
+    "concrete": "concrete",
 }
 
 
@@ -84,7 +91,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", choices=sorted(CFG), default="tgfem")
     ap.add_argument("--dataset",
-                    choices=["neu", "gc10", "combined", "deepcrack", "crack", "neu_crack"],
+                    choices=["neu", "gc10", "combined", "deepcrack", "crack", "neu_crack",
+                             "concrete"],
                     default="neu")
     ap.add_argument("--protocol", choices=["closed", "openvocab"], default="closed")
     ap.add_argument("--tier", choices=["bare", "natural", "visual", "material", "alias"], default="natural",

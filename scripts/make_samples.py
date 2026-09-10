@@ -33,6 +33,7 @@ DATASETS = {
     "combined": (REPO_ROOT / "datasets" / "combined-yolo", "combined_closed.yaml", "combined_test.txt"),
     "crack": (REPO_ROOT / "datasets" / "crack-merged-yolo", "crack_merged.yaml", "test.txt"),
     "neu_crack": (REPO_ROOT / "datasets" / "neu-crack-yolo", "neucrack_closed.yaml", "neucrack_test.txt"),
+    "concrete": (REPO_ROOT / "datasets" / "concrete-yolo", "concrete_closed.yaml", "test.txt"),
 }
 # One folder per model. The app serves each model its own samples, so a steel
 # checkpoint is never demoed on a concrete image (and vice versa) by accident.

@@ -93,6 +93,26 @@ GC10_HELD_OUT = {"crescent_gap", "punching_hole", "welding_line"}
 DEEPCRACK_CLASSES = ["crack"]
 
 
+# Concrete structural defects (Roboflow "Concrete defect detection", CC BY 4.0).
+#
+# ORDER IS LOAD-BEARING: it is the class order in that dataset's own data.yaml
+# (['Exposed_reinforcement', 'Ruststrain', 'Scaling', 'Spalling', 'crack',
+# 'efflorescence']), so the label files can be used verbatim with no index
+# rewriting. Only the NAMES change, into the snake_case English the corpus
+# uses. Reordering this list silently mislabels every box in the dataset.
+#
+# `crack` is reused rather than namespaced: this dataset's cracks ARE concrete
+# cracks, so the existing corpus wording applies unchanged.
+CONCRETE_CLASSES = [
+    "exposed_reinforcement",
+    "rust_stain",
+    "scaling",
+    "spalling",
+    "crack",
+    "efflorescence",
+]
+
+
 # --------------------------------------------------------------------------
 # Phase 4/6 - training-vocabulary helper
 # --------------------------------------------------------------------------

@@ -1,0 +1,32 @@
+{
+  "variant": "tgfem",
+  "dataset": "concrete",
+  "protocol": "closed",
+  "config": "yolo11-tgfem.yaml",
+  "n_ctx": 8,
+  "phrase_aug": true,
+  "tier": "natural",
+  "pretrained_clip_loaded": true,
+  "epochs": 150,
+  "batch": 16,
+  "imgsz": 640,
+  "seed": 42,
+  "mAP50": 0.32563,
+  "mAP50_95": 0.16286,
+  "precision": 0.31807,
+  "recall": 0.3932,
+  "per_class_AP50": {
+    "exposed_reinforcement": 0.31798,
+    "rust_stain": 0.03142,
+    "scaling": 0.30722,
+    "spalling": 0.58097,
+    "crack": 0.38267,
+    "efflorescence": 0.33354
+  },
+  "speed_ms": {
+    "preprocess": 1.03,
+    "inference": 7.23,
+    "loss": 0.0,
+    "postprocess": 0.97
+  }
+}

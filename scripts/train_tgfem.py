@@ -66,20 +66,25 @@ DATA_YAML = {
     # what "deepcrack" above should have been - keep both so the 255-image
     # result stays reproducible as the small-data comparison point.
     ("crack", "closed"): REPO_ROOT / "datasets" / "crack-merged-yolo" / "crack_merged.yaml",
+    # NEU + crack, 7 classes. The point is not mAP: a single-class crack model
+    # is not text-guided at all (PHASE-9.md section 4), and this is the test of
+    # whether giving crack six steel classes to compete against fixes that.
+    ("neu_crack", "closed"): REPO_ROOT / "datasets" / "neu-crack-yolo" / "neucrack_closed.yaml",
 }
 
 # Which scripts/prepare_*.py builds each dataset, for the error message when one
 # has not been built yet.
 PREPARE_SCRIPT = {
     "neu": "neu_det", "gc10": "gc10", "combined": "combined",
-    "deepcrack": "deepcrack", "crack": "crack_merged",
+    "deepcrack": "deepcrack", "crack": "crack_merged", "neu_crack": "neu_crack",
 }
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", choices=sorted(CFG), default="tgfem")
-    ap.add_argument("--dataset", choices=["neu", "gc10", "combined", "deepcrack", "crack"],
+    ap.add_argument("--dataset",
+                    choices=["neu", "gc10", "combined", "deepcrack", "crack", "neu_crack"],
                     default="neu")
     ap.add_argument("--protocol", choices=["closed", "openvocab"], default="closed")
     ap.add_argument("--tier", choices=["bare", "natural", "visual", "material", "alias"], default="natural",

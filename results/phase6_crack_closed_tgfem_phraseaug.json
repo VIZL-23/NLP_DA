@@ -1,0 +1,27 @@
+{
+  "variant": "tgfem",
+  "dataset": "crack",
+  "protocol": "closed",
+  "config": "yolo11-tgfem.yaml",
+  "n_ctx": 8,
+  "phrase_aug": true,
+  "tier": "natural",
+  "pretrained_clip_loaded": true,
+  "epochs": 60,
+  "batch": 16,
+  "imgsz": 640,
+  "seed": 42,
+  "mAP50": 0.46468,
+  "mAP50_95": 0.26295,
+  "precision": 0.68161,
+  "recall": 0.40815,
+  "per_class_AP50": {
+    "crack": 0.46468
+  },
+  "speed_ms": {
+    "preprocess": 0.7,
+    "inference": 5.37,
+    "loss": 0.0,
+    "postprocess": 0.77
+  }
+}

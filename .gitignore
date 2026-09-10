@@ -32,12 +32,24 @@ cache/
 datasets/neu-det-yolo/
 datasets/gc10-det-yolo/
 datasets/deepcrack-yolo/
+datasets/combined-yolo/
+datasets/crack-merged-yolo/
+datasets/neu-crack-yolo/
 
 # --- Newly added source datasets (download separately, do NOT commit) ---
 # NEU-DET and SDNET2018 predate this rule and stay tracked for continuity.
 # Everything added from here on is downloaded per-machine instead.
 datasets/GC10-DET/
 datasets/DeepCrack/
+# 1,056 MB of HuggingFace parquet. Every file is over GitHub's 100 MB hard
+# limit, so a push containing them is REFUSED, not merely slow. Re-fetch with
+# scripts/download_cracks.py (resumable) and rebuild with
+# scripts/prepare_crack_merged.py.
+datasets/CRACK500/
+# 630 MB and currently unused - only needed if the crack model turns out to
+# fire on crack-free concrete. Untracked with `git rm -r --cached` (local copy
+# kept); this line stops it being re-added.
+datasets/SDNET2018/
 
 # --- Environment / secrets ---
 .env

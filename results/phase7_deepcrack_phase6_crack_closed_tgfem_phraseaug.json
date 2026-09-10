@@ -1,0 +1,27 @@
+{
+  "checkpoint": "runs\\phase6_crack_closed_tgfem_phraseaug\\weights\\best.pt",
+  "pretrained_clip_loaded": true,
+  "trained_vocabulary": [
+    "a crack in the concrete surface"
+  ],
+  "per_tier": {
+    "bare": {
+      "phrase": "crack",
+      "mAP50": 0.19262,
+      "mAP50_95": 0.10862,
+      "precision": 0.41328,
+      "recall": 0.22908
+    },
+    "natural": {
+      "phrase": "a crack in the concrete surface",
+      "mAP50": 0.19267,
+      "mAP50_95": 0.10867,
+      "precision": 0.41396,
+      "recall": 0.22586
+    }
+  },
+  "absurd_control": {
+    "phrase": "banana",
+    "mAP50": 0.19268
+  }
+}

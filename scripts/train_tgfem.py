@@ -58,13 +58,29 @@ DATA_YAML = {
     # a combined open-vocabulary split would need its held-out classes chosen
     # afresh across both taxonomies, which is a separate design decision.
     ("combined", "closed"): REPO_ROOT / "datasets" / "combined-yolo" / "combined_closed.yaml",
+    # DeepCrack specialist (concrete/asphalt, single class). Training on this
+    # SPENDS the out-of-distribution holdout - deliberate, see PHASE-1b.md.
+    ("deepcrack", "closed"): REPO_ROOT / "datasets" / "deepcrack-yolo" / "deepcrack_closed.yaml",
+    # The concrete specialist that actually ships: ~9.7k pooled crack images
+    # with DeepCrack excluded, so DeepCrack survives as the OOD probe. This is
+    # what "deepcrack" above should have been - keep both so the 255-image
+    # result stays reproducible as the small-data comparison point.
+    ("crack", "closed"): REPO_ROOT / "datasets" / "crack-merged-yolo" / "crack_merged.yaml",
+}
+
+# Which scripts/prepare_*.py builds each dataset, for the error message when one
+# has not been built yet.
+PREPARE_SCRIPT = {
+    "neu": "neu_det", "gc10": "gc10", "combined": "combined",
+    "deepcrack": "deepcrack", "crack": "crack_merged",
 }
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", choices=sorted(CFG), default="tgfem")
-    ap.add_argument("--dataset", choices=["neu", "gc10", "combined"], default="neu")
+    ap.add_argument("--dataset", choices=["neu", "gc10", "combined", "deepcrack", "crack"],
+                    default="neu")
     ap.add_argument("--protocol", choices=["closed", "openvocab"], default="closed")
     ap.add_argument("--tier", choices=["bare", "natural", "visual", "material", "alias"], default="natural",
                      help="ablation (d): which phrase tier forms the fixed training vocabulary")
@@ -91,8 +107,7 @@ def main():
     if not data_path.exists():
         raise SystemExit(
             f"missing {data_path}\n"
-            f"run: python scripts/prepare_"
-            f"{ {'neu': 'neu_det', 'gc10': 'gc10', 'combined': 'combined'}[args.dataset] }.py"
+            f"run: python scripts/prepare_{PREPARE_SCRIPT[args.dataset]}.py"
         )
     names = [v for _, v in sorted(yaml.safe_load(data_path.read_text())["names"].items())]
     class_texts = class_texts_for(names, tier=args.tier)

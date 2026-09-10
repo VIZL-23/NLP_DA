@@ -71,9 +71,16 @@ def main():
 
     from tgfem import register
     from tgfem.detection_model import TGFEMModel  # noqa: F401 - needed for unpickling
+    from tgfem.inference import _resolve_device
     from tgfem.language import TextConditioner
 
     register()
+
+    # Ultralytics tolerates a bare "0", torch.load and Module.to do not: they
+    # raise "don't know how to restore data location" and "Invalid device
+    # string" respectively. Normalise once, here. `torch_device` is for torch
+    # calls; args.device stays as-is for the Ultralytics validator config.
+    torch_device = _resolve_device(args.device)
 
     print("=" * 62)
     print("Phase 7 - DeepCrack OOD zero-shot evaluation")
@@ -85,9 +92,9 @@ def main():
             "download DeepCrack per the README, then: python scripts/prepare_deepcrack.py"
         )
 
-    ckpt = torch.load(args.checkpoint, map_location=args.device, weights_only=False)
+    ckpt = torch.load(args.checkpoint, map_location=torch_device, weights_only=False)
     model = ckpt["model"] if isinstance(ckpt, dict) else ckpt
-    model = model.float().to(args.device)
+    model = model.float().to(torch_device)
 
     hooks = [h for h in model._forward_pre_hooks.values() if isinstance(h, TextConditioner)]
     if not hooks:

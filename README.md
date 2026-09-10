@@ -89,8 +89,9 @@ before starting a phase.
 | **4** | Language branch | Done | Frozen CLIP text encoder + CoOp learnable context tokens, wired via a `forward_pre_hook` |
 | **5** | TG-FEM | Done | Real math (proj → region-text attention → dual gating → residual) + WorldDetect open-vocab head |
 | **6** | Training | **Done, on GPU, real CLIP** | 5 runs at the report's schedule. `pretrained_clip_loaded: true` throughout. **The result is negative** — see below |
-| **7** | Evaluation & ablations | **Done for NEU-DET** | Ablations (a), (d), (g) + phrase augmentation, all on GPU. Text interface characterised. GC10 and DeepCrack OOD still unrun |
+| **7** | Evaluation & ablations | **Done** | Ablations (a), (d), (g) + phrase augmentation, all on GPU. Text interface characterised. GC10 specialist 0.6379; DeepCrack run added |
 | **8** | Report & demo | Scaffolded | `scripts/demo.py` verified end to end; the report itself needs restructuring around the Phase 6 result |
+| **9** | Specialists + app | **Done / training** | Combined 16-class model measured and **rejected**; concrete dataset grown 255 -> 8,126 images; app serves three specialist models |
 
 \* **Verified by actually running the code, not numerically yet.** All of
 Phases 4-8 have been built and executed on a machine with no GPU and no live
@@ -198,9 +199,115 @@ Of the seven planned, three are load-bearing — run these first:
 
 ---
 
+## Running the demo app
+
+A local web app: pick a model, upload an image (or pick a bundled sample), type
+a description of the defect, get boxes back. This is the project deliverable -
+the thing the whole pipeline exists to produce.
+
+```bash
+python app/server.py
+```
+
+Then open **http://localhost:8000**. Nothing is deployed and nothing is fetched
+over the network; it runs entirely on your machine, so a demo cannot be broken
+by the venue's wifi.
+
+If a checkpoint has not been trained yet the app **skips it and starts anyway**,
+so it is usable mid-project with whatever is ready.
+
+### Options
+
+```bash
+python app/server.py --device cpu        # force CPU (e.g. while the GPU is training)
+python app/server.py --only neu gc10     # load a subset of the models
+python app/server.py --port 8080         # if 8000 is taken
+```
+
+The model list, each vocabulary and each sample set all come **from the server**,
+which reads them from the checkpoints themselves. Adding a model is one entry in
+`MODELS` in `app/server.py`; the frontend needs no change.
+
+### The three models, and why not one
+
+| model | classes | domain | mAP@0.5 |
+|---|---|---|---|
+| `neu` | 6 | hot-rolled steel strip | 0.7205 |
+| `gc10` | 10 | galvanised steel sheet | 0.6379 |
+| `crack` | 1 | concrete and pavement | 0.4647 \* |
+
+\* **The crack model is not text-guided.** It has a single class, so its contrastive head was never asked to separate one query from another, and it returns the same boxes for `banana` as for `a crack in the concrete surface` (confidences differ by ~0.002). The app states this when you select it. The multi-class steel models genuinely do discriminate - `banana` returns nothing. See `phase-notes/PHASE-9.md` section 4.
+
+A single 16-class NEU+GC10 model **was** trained and measured, and it is worse
+than the specialists on **both** taxonomies:
+
+| | specialist | inside the 16-class model | difference |
+|---|---|---|---|
+| GC10 classes | 0.6379 | 0.5980 | **-4.0 points** |
+| NEU classes | 0.7205 | 0.7042 | **-1.6 points** |
+
+8 of 10 GC10 classes and 5 of 6 NEU classes get worse when the two datasets are
+trained together, and the combined model also lost novel-paraphrase coverage
+(0 of 6, against 1 of 6 for the NEU specialist). Splitting into specialists
+gives the same 17-class vocabulary at strictly better accuracy, at the cost of
+the user picking a domain.
+
+### Which checkpoints it uses, and why
+
+Every entry is a **phrase-augmented** checkpoint. This is **not** the
+highest-mAP choice, and that is deliberate:
+
+| checkpoint | mAP@0.5 | phrasings it responds to |
+|---|---|---|
+| `phase6_neu_closed_tgfem` | **0.7268** (best) | **2 of 6** |
+| `phase6_neu_closed_tgfem_phraseaug` | 0.7205 | **5 of 6** |
+
+Choosing by mAP would give a model that only answers to six memorised strings -
+so in a live demo, where a user types in their own words, it returns nothing and
+the project looks broken. The 0.006 mAP difference is well inside noise
+(`phase-notes/PHASE-7.md` section 2); the phrasing difference is not.
+
+### Sample images
+
+```bash
+python scripts/make_samples.py --dataset neu     # -> app/samples/neu/
+python scripts/make_samples.py --dataset gc10    # -> app/samples/gc10/
+python scripts/make_samples.py --dataset crack   # -> app/samples/crack/
+```
+
+One folder per model, so a steel checkpoint is never demoed on a concrete image
+by accident. Samples are drawn from the **held-out test split** by fixed seed -
+**not** selected by how well the model scores on them. "Random sample, fixed
+seed, from data the model never saw" is a defensible answer when someone asks
+how they were chosen; cherry-picked best cases are not.
+
+### Known limits, worth stating up front in a demo
+
+These are measured, not guesses (`phase-notes/PHASE-7.md` sections 3-4):
+
+- **Only the trained classes work.** Held-out classes score 0.000 AP - there is
+  no working zero-shot behaviour.
+- **Roughly 1 in 6 genuinely novel phrasings works.** Wording close to the
+  listed phrases is reliable; wording with no lexical overlap usually returns
+  nothing. The UI shows the supported phrases for this reason.
+- **Each model expects its own domain.** The steel models have only ever seen
+  200x200 grayscale steel imagery; a cracked wall belongs to the `crack` model.
+  Picking the wrong model is the most likely way to make the demo look broken.
+- **The crack model ignores the query text** (single class - see the table
+  above). Demonstrate text guidance on a steel model, not on that one.
+- A wrong-class or nonsense query returning **nothing is correct behaviour**, and
+  is worth demonstrating deliberately: it shows the model discriminating rather
+  than boxing whatever text it is given.
+
+---
+
 ## Repository layout
 
 ```
+app/
+  server.py            local FastAPI app (the deliverable)
+  static/index.html    single-page UI
+  samples/             bundled test-split images (generated)
 scripts/
   check_env.py         toolchain + dataset audit (run this first)
   prepare_neu_det.py   VOC→YOLO, splits, dataset YAMLs, geometry stats
@@ -217,12 +324,17 @@ scripts/
   eval_tgfem.py        Phase 7 negative control + cross-variant comparison
   eval_deepcrack.py    Phase 7 DeepCrack OOD zero-shot evaluation
   demo.py              Phase 8 text-query inference demo
+  probe_wording.py     Phase 7 wording-robustness probe (graded paraphrases)
+  probe_generalisation.py  Phase 7 corpus-absent phrasings: coverage vs semantics
+  prepare_combined.py  NEU + GC10 merged into one 16-class dataset
+  make_samples.py      bundle demo samples from the test split (fixed seed)
 src/tgfem/
   module.py            TGFEM - real math (Phase 5)
   language.py          TextEncoder, ContextTokenLearner, TextConditioner (Phase 4)
   detection_model.py   TGFEMModel - WorldDetect text threading (Phase 5)
   trainer.py           TGFEMTrainer - optimiser/checkpoint wiring (Phase 5)
   data.py              canonical taxonomies + corpus phrase selection
+  inference.py         DefectDetector - framework-free, backs the app and demo
 cfg/
   yolo11-tgfem.yaml            the model (TG-FEM gates + WorldDetect head)
   yolo11-tgfem-ablation-a.yaml ablation (a) - identity mode, same param budget

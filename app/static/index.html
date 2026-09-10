@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TG-FEM — Text-Guided Defect Detection</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#262b36; --ink:#e6e9ef;
+    --muted:#8b94a7; --accent:#4f9cf9; --hit:#ff4d4f; --ok:#3ddc97;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  header{padding:18px 24px;border-bottom:1px solid var(--line);
+         display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+  h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.2px}
+  h1 span{color:var(--muted);font-weight:400}
+  #meta{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+  main{display:grid;grid-template-columns:340px 1fr;gap:20px;padding:20px 24px;
+       align-items:start;max-width:1400px}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .panel h2{margin:0 0 10px;font-size:12px;text-transform:uppercase;
+            letter-spacing:.08em;color:var(--muted);font-weight:600}
+  .hint{color:var(--muted);font-size:12px;margin:8px 0 0}
+  textarea{width:100%;background:#0d1016;color:var(--ink);border:1px solid var(--line);
+           border-radius:8px;padding:10px;font:13px/1.5 inherit;resize:vertical;min-height:76px}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:var(--accent);color:#04121f;border:0;border-radius:8px;
+         padding:10px 16px;font-weight:600;cursor:pointer;font-size:13px}
+  button:disabled{opacity:.5;cursor:default}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
+  .row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .models{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .mdl{flex:1 1 120px;background:#0d1016;border:1px solid var(--line);border-radius:8px;
+       padding:8px 10px;cursor:pointer;text-align:left;color:var(--ink);font:inherit}
+  .mdl:hover{border-color:#2b3444}
+  .mdl.sel{border-color:var(--accent);background:#0f1620}
+  .mdl b{display:block;font-size:12.5px;font-weight:600}
+  .mdl span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip{background:#0d1016;border:1px solid var(--line);border-radius:999px;
+        padding:5px 11px;font-size:12px;cursor:pointer;color:var(--ink)}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+  .samples{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin-top:4px}
+  .samples img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;
+               border:2px solid transparent;cursor:pointer;background:#0d1016}
+  .samples img:hover{border-color:var(--line)}
+  .samples img.sel{border-color:var(--accent)}
+  .samples .up{position:relative}
+  .samples .up img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;
+                   border:2px solid transparent;cursor:pointer;background:#0d1016;display:block}
+  .samples .up img.sel{border-color:var(--accent)}
+  .samples .up b{position:absolute;left:3px;bottom:3px;background:var(--accent);
+                 color:#04121f;font-size:9px;padding:1px 5px;border-radius:999px;
+                 letter-spacing:.04em;pointer-events:none}
+  .samples .up .x{position:absolute;top:2px;right:2px;background:#0008;color:#fff;
+                  border-radius:999px;width:16px;height:16px;line-height:15px;
+                  text-align:center;font-size:12px;cursor:pointer}
+  #stage{position:relative;background:#0d1016;border:1px solid var(--line);
+         border-radius:10px;min-height:320px;display:flex;align-items:center;
+         justify-content:center;overflow:hidden}
+  #canvas{max-width:100%;display:block}
+  #empty{color:var(--muted);text-align:center;padding:40px 24px;max-width:460px}
+  #results{margin-top:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  td.conf{font-variant-numeric:tabular-nums;color:var(--ok);font-weight:600}
+  .note{border-left:2px solid var(--accent);padding:10px 12px;background:#0d1016;
+        border-radius:0 8px 8px 0;color:var(--muted);font-size:12.5px;margin-top:12px}
+  .warn{border-left-color:#f5a524}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:3px;
+      vertical-align:-1px;margin-right:7px;flex:0 0 auto}
+  #legend{display:flex;flex-direction:column;gap:5px;margin-top:12px}
+  .leg{display:flex;align-items:center;gap:2px;font-size:12.5px;color:var(--ink)}
+  .leg .n{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums;
+          font-size:11.5px;padding-left:10px}
+  .leg.none{color:var(--muted)}
+  .leg.none .sw{opacity:.3}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>TG-FEM <span>· text-guided surface defect detection</span></h1>
+  <div id="meta">loading model…</div>
+</header>
+
+<main>
+  <div>
+    <div class="panel">
+      <h2>1 · Choose a model</h2>
+      <div class="models" id="models"></div>
+      <h2 style="margin-top:16px">2 · Choose an image</h2>
+      <div class="samples" id="samples"></div>
+      <p class="hint" id="sampleHint"></p>
+      <div class="row">
+        <input type="file" id="file" accept="image/*" hidden>
+        <button class="ghost" onclick="document.getElementById('file').click()">Upload your own</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>3 · Describe what to find</h2>
+      <textarea id="queries" placeholder="one description per line, e.g.&#10;scratches on the steel surface"></textarea>
+      <p class="hint">Click a phrase below to add it, or type your own wording.</p>
+      <div class="note warn" id="textWarn" hidden style="margin:0 0 10px"></div>
+      <div class="chips" id="vocab"></div>
+      <div class="row">
+        <button id="run">Detect</button>
+        <label class="hint" style="margin:0">confidence
+          <input id="conf" type="range" min="0.05" max="0.9" step="0.05" value="0.25"
+                 style="vertical-align:middle;width:96px">
+          <b id="confVal">0.25</b>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div id="stage">
+      <div id="empty">Pick a sample image or upload one, describe the defect you are
+        looking for, and press <b>Detect</b>.</div>
+      <canvas id="canvas" hidden></canvas>
+    </div>
+    <div id="results"></div>
+  </div>
+</main>
+
+<script>
+let INFO = null, MODEL = null, currentSample = null, currentFile = null;
+const $ = id => document.getElementById(id);
+
+async function boot(){
+  INFO = await (await fetch('/api/info')).json();
+
+  // The model list, each vocabulary and each sample set all come from the
+  // server, never hardcoded here - adding a checkpoint must not require
+  // touching this file.
+  $('models').innerHTML = '';
+  INFO.models.forEach(m => {
+    const b = document.createElement('button');
+    b.className = 'mdl'; b.dataset.key = m.key;
+    b.innerHTML = '<b></b><span></span>';
+    b.querySelector('b').textContent = m.label;
+    b.querySelector('span').textContent = m.blurb;
+    b.onclick = () => selectModel(m.key);
+    $('models').appendChild(b);
+  });
+  selectModel(INFO.default);
+}
+
+function selectModel(key){
+  MODEL = INFO.models.find(m => m.key === key);
+  [...$('models').children].forEach(b => b.classList.toggle('sel', b.dataset.key === key));
+  $('meta').textContent =
+    `${MODEL.trained_vocabulary.length} classes · ${MODEL.device} · CLIP ${MODEL.clip_pretrained ? 'pretrained' : 'RANDOM (!)'}`;
+
+  // A sample from the previous model lives in a different folder on the server,
+  // so any selection has to be dropped when the model changes.
+  currentSample = null;
+  removeUpload();
+
+  // Say plainly when the text input does not actually steer the model. A
+  // single-class checkpoint returns the same boxes for any query, and
+  // presenting it as text-guided would be a false claim - see
+  // DefectDetector.text_discriminative.
+  const w = $('textWarn');
+  w.hidden = MODEL.text_discriminative;
+  if (!w.hidden) {
+    w.innerHTML = '<b>This model has a single class, so the text does not ' +
+      'steer it.</b> It returns the same boxes for any query - the wording is ' +
+      'recorded, not used. The multi-class models above are genuinely ' +
+      'text-guided; this one is a plain detector.';
+  }
+
+  $('vocab').innerHTML = '';
+  MODEL.trained_vocabulary.forEach(p => {
+    const c = document.createElement('div');
+    c.className = 'chip'; c.textContent = p;
+    c.onclick = () => {
+      const t = $('queries');
+      t.value = (t.value.trim() ? t.value.trim() + '\n' : '') + p;
+    };
+    $('vocab').appendChild(c);
+  });
+
+  const box = $('samples');
+  box.innerHTML = '';
+  MODEL.samples.forEach(n => {
+    const im = document.createElement('img');
+    im.src = `/api/sample/${MODEL.key}/${encodeURIComponent(n)}`; im.title = n;
+    im.onclick = () => {
+      currentSample = n; currentFile = null;
+      clearSelection();
+      im.classList.add('sel');
+    };
+    box.appendChild(im);
+  });
+  $('sampleHint').textContent = MODEL.samples.length
+    ? 'Held-out test images this model never trained on.'
+    : 'No sample images bundled for this model - upload one instead.';
+}
+
+$('conf').oninput = e => $('confVal').textContent = (+e.target.value).toFixed(2);
+function clearSelection(){
+  [...$('samples').querySelectorAll('img')].forEach(c => c.classList.remove('sel'));
+}
+
+function removeUpload(){
+  const tile = $('samples').querySelector('.up');
+  if (tile) tile.remove();
+  currentFile = null;
+  $('file').value = '';
+  $('sampleHint').textContent = MODEL && MODEL.samples.length
+    ? 'Held-out test images this model never trained on.'
+    : 'No sample images bundled for this model - upload one instead.';
+}
+
+$('file').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  currentFile = f;
+  currentSample = null;
+  clearSelection();
+
+  // Replace any previous upload so the grid never fills with stale tiles.
+  const existing = $('samples').querySelector('.up');
+  if (existing) existing.remove();
+
+  const tile = document.createElement('div');
+  tile.className = 'up';
+  const im = document.createElement('img');
+  im.src = URL.createObjectURL(f);           // local preview, no server round-trip
+  im.className = 'sel';
+  im.title = f.name;
+  im.onclick = () => { currentFile = f; currentSample = null; clearSelection(); im.classList.add('sel'); };
+  const tag = document.createElement('b'); tag.textContent = 'yours';
+  const x = document.createElement('div'); x.className = 'x'; x.textContent = '×';
+  x.title = 'remove'; x.onclick = ev => { ev.stopPropagation(); removeUpload(); };
+  tile.append(im, tag, x);
+  // Prepend so the user's own image is the first thing they see.
+  $('samples').prepend(tile);
+  $('sampleHint').textContent = 'Your image is first in the grid. ' + f.name;
+};
+
+$('run').onclick = async () => {
+  const queries = $('queries').value.trim();
+  if (!queries) return alert('Describe what to look for first.');
+  if (!currentSample && !currentFile) return alert('Pick a sample image or upload one.');
+
+  const fd = new FormData();
+  fd.append('queries', queries);
+  fd.append('model', MODEL.key);
+  fd.append('conf', $('conf').value);
+  if (currentFile) fd.append('image', currentFile);
+  else fd.append('sample_name', currentSample);
+
+  $('run').disabled = true; $('run').textContent = 'Detecting…';
+  try {
+    const r = await fetch('/api/detect', {method:'POST', body: fd});
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    render(await r.json());
+  } catch (err) {
+    $('results').innerHTML = `<div class="note warn">${err.message}</div>`;
+  } finally {
+    $('run').disabled = false; $('run').textContent = 'Detect';
+  }
+};
+
+// Distinct hues so each query is traceable to its boxes. Chosen to stay legible
+// on grayscale steel imagery and on the dark panel; cycles if a user enters more
+// queries than colours.
+const PALETTE = ['#ff4d4f','#4f9cf9','#3ddc97','#f5a524',
+                 '#b47cff','#00d4d8','#ff7ab6','#a3e635'];
+const colourFor = i => PALETTE[i % PALETTE.length];
+
+function render(res){
+  const cv = $('canvas'), ctx = cv.getContext('2d'), img = new Image();
+  img.onload = () => {
+    // Upscale small images (NEU-DET is 200x200) so boxes and labels stay legible.
+    const scale = Math.max(1, 640 / Math.max(img.width, img.height));
+    cv.width = img.width * scale; cv.height = img.height * scale;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+
+    ctx.lineWidth = 2; ctx.font = '600 13px ui-sans-serif,system-ui,sans-serif';
+    res.detections.forEach(d => {
+      const col = colourFor(d.query_index);
+      const x = d.box.x1*scale, y = d.box.y1*scale;
+      const w = (d.box.x2-d.box.x1)*scale, h = (d.box.y2-d.box.y1)*scale;
+      ctx.strokeStyle = col; ctx.strokeRect(x, y, w, h);
+
+      // Number the box rather than writing the full phrase: several long
+      // descriptions overlapping would obscure the image they annotate.
+      // The legend carries the mapping.
+      const tag = `${d.query_index + 1}  ${d.conf.toFixed(2)}`;
+      const tw = ctx.measureText(tag).width;
+      const ty = y > 20 ? y - 18 : y + 2;
+      const tx = Math.min(x, cv.width - tw - 10);
+      ctx.fillStyle = col; ctx.fillRect(tx, ty, tw + 10, 18);
+      ctx.fillStyle = '#07121c'; ctx.fillText(tag, tx + 5, ty + 13);
+    });
+    cv.hidden = false; $('empty').hidden = true;
+  };
+  img.src = res.image;
+
+  // Legend covers EVERY query, including ones that matched nothing - "you asked
+  // for three things and one wasn't there" is itself a result worth showing.
+  const counts = {};
+  res.detections.forEach(d => counts[d.query_index] = (counts[d.query_index] || 0) + 1);
+  const legend = res.queries.map((q, i) => {
+    const n = counts[i] || 0;
+    return `<div class="leg ${n ? '' : 'none'}">
+      <span class="sw" style="background:${colourFor(i)}"></span>
+      <span><b style="font-variant-numeric:tabular-nums">${i + 1}</b> &nbsp;${q}</span>
+      <span class="n">${n ? n + (n === 1 ? ' match' : ' matches') : 'not found'}</span>
+    </div>`;
+  }).join('');
+
+  if (!res.detections.length){
+    $('results').innerHTML = `<div id="legend">${legend}</div>
+      <div class="note">
+      <b>Nothing detected above ${(+$('conf').value).toFixed(2)}.</b><br>
+      <b>${MODEL.label}</b> was trained on ${MODEL.blurb} and responds reliably to
+      the phrasings listed on the left. An unrelated image, or wording far from
+      those phrases, will correctly return nothing - that is the model
+      discriminating, not failing. Try a listed phrase, pick a different model
+      above, or lower the confidence slider.</div>`;
+    return;
+  }
+
+  $('results').innerHTML = `<div id="legend">${legend}</div>
+    <table style="margin-top:14px"><thead><tr>
+      <th>matched description</th><th style="width:90px">confidence</th>
+      <th style="width:180px">box (x1,y1,x2,y2)</th>
+    </tr></thead><tbody>` +
+    res.detections.map(d => `<tr>
+      <td><span class="sw" style="background:${colourFor(d.query_index)}"></span>${d.query}</td>
+      <td class="conf">${d.conf.toFixed(3)}</td>
+      <td style="color:var(--muted);font-variant-numeric:tabular-nums">
+        ${d.box.x1}, ${d.box.y1}, ${d.box.x2}, ${d.box.y2}</td></tr>`).join('') +
+    `</tbody></table>`;
+}
+
+boot();
+</script>
+</body>
+</html>

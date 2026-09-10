@@ -1,0 +1,36 @@
+{
+  "variant": "tgfem",
+  "dataset": "gc10",
+  "protocol": "closed",
+  "config": "yolo11-tgfem.yaml",
+  "n_ctx": 8,
+  "phrase_aug": true,
+  "tier": "natural",
+  "pretrained_clip_loaded": true,
+  "epochs": 150,
+  "batch": 16,
+  "imgsz": 640,
+  "seed": 42,
+  "mAP50": 0.63789,
+  "mAP50_95": 0.3015,
+  "precision": 0.65947,
+  "recall": 0.62113,
+  "per_class_AP50": {
+    "crease": 0.45959,
+    "crescent_gap": 0.94341,
+    "gc10_inclusion": 0.16438,
+    "oil_spot": 0.57096,
+    "punching_hole": 0.97755,
+    "rolled_pit": 0.19735,
+    "silk_spot": 0.62105,
+    "waist_folding": 0.85452,
+    "water_spot": 0.67184,
+    "welding_line": 0.91825
+  },
+  "speed_ms": {
+    "preprocess": 1.0,
+    "inference": 7.62,
+    "loss": 0.0,
+    "postprocess": 1.17
+  }
+}

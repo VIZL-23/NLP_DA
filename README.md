@@ -91,7 +91,7 @@ before starting a phase.
 | **6** | Training | **Done, on GPU, real CLIP** | 5 runs at the report's schedule. `pretrained_clip_loaded: true` throughout. **The result is negative** — see below |
 | **7** | Evaluation & ablations | **Done** | Ablations (a), (d), (g) + phrase augmentation, all on GPU. Text interface characterised. GC10 specialist 0.6379; DeepCrack run added |
 | **8** | Report & demo | Scaffolded | `scripts/demo.py` verified end to end; the report itself needs restructuring around the Phase 6 result |
-| **9** | Specialists + app | **Done / training** | Combined 16-class model measured and **rejected**; concrete dataset grown 255 -> 8,126 images; app serves three specialist models |
+| **9** | Specialists + app | **Done** | 16-class steel merge **rejected**, 7-class steel+concrete merge **shipped**; concrete data grown 255 -> 8,126 images; single-class models shown not to be text-guided |
 
 \* **Verified by actually running the code, not numerically yet.** All of
 Phases 4-8 have been built and executed on a machine with no GPU and no live
@@ -228,29 +228,29 @@ The model list, each vocabulary and each sample set all come **from the server**
 which reads them from the checkpoints themselves. Adding a model is one entry in
 `MODELS` in `app/server.py`; the frontend needs no change.
 
-### The three models, and why not one
+### The two models, and why these
 
 | model | classes | domain | mAP@0.5 |
 |---|---|---|---|
-| `neu` | 6 | hot-rolled steel strip | 0.7205 |
+| `neu_crack` | 7 | steel strip + concrete cracks | 0.6867 |
 | `gc10` | 10 | galvanised steel sheet | 0.6379 |
-| `crack` | 1 | concrete and pavement | 0.4647 \* |
 
-\* **The crack model is not text-guided.** It has a single class, so its contrastive head was never asked to separate one query from another, and it returns the same boxes for `banana` as for `a crack in the concrete surface` (confidences differ by ~0.002). The app states this when you select it. The multi-class steel models genuinely do discriminate - `banana` returns nothing. See `phase-notes/PHASE-9.md` section 4.
+Merging datasets was measured **both ways**, and the result depends entirely on
+how similar the classes are:
 
-A single 16-class NEU+GC10 model **was** trained and measured, and it is worse
-than the specialists on **both** taxonomies:
+| merge | outcome | shipped? |
+|---|---|---|
+| NEU + GC10 (steel + steel, 16 classes) | GC10 0.598 vs 0.638, NEU 0.704 vs 0.720 | no |
+| NEU + crack (steel + concrete, 7 classes) | NEU 0.7264 vs 0.7205, crack 0.448 vs 0.465 | **yes** |
 
-| | specialist | inside the 16-class model | difference |
-|---|---|---|---|
-| GC10 classes | 0.6379 | 0.5980 | **-4.0 points** |
-| NEU classes | 0.7205 | 0.7042 | **-1.6 points** |
+Two steel datasets share near-synonymous classes (`inclusion` exists in both),
+so the model has to separate genuinely confusable categories and every class
+gets harder. Steel and concrete are not confusable, so that merge costs nothing
+measurable - and it is the only configuration where a concrete query means
+anything (see below).
 
-8 of 10 GC10 classes and 5 of 6 NEU classes get worse when the two datasets are
-trained together, and the combined model also lost novel-paraphrase coverage
-(0 of 6, against 1 of 6 for the NEU specialist). Splitting into specialists
-gives the same 17-class vocabulary at strictly better accuracy, at the cost of
-the user picking a domain.
+`neu_crack` **replaces** the separate NEU and crack specialists, which stay in
+`runs/` as the evidence for this decision.
 
 ### Which checkpoints it uses, and why
 
@@ -270,9 +270,8 @@ the project looks broken. The 0.006 mAP difference is well inside noise
 ### Sample images
 
 ```bash
-python scripts/make_samples.py --dataset neu     # -> app/samples/neu/
-python scripts/make_samples.py --dataset gc10    # -> app/samples/gc10/
-python scripts/make_samples.py --dataset crack   # -> app/samples/crack/
+python scripts/make_samples.py --dataset neu_crack  # -> app/samples/neu_crack/
+python scripts/make_samples.py --dataset gc10      # -> app/samples/gc10/
 ```
 
 One folder per model, so a steel checkpoint is never demoed on a concrete image
@@ -293,8 +292,11 @@ These are measured, not guesses (`phase-notes/PHASE-7.md` sections 3-4):
 - **Each model expects its own domain.** The steel models have only ever seen
   200x200 grayscale steel imagery; a cracked wall belongs to the `crack` model.
   Picking the wrong model is the most likely way to make the demo look broken.
-- **The crack model ignores the query text** (single class - see the table
-  above). Demonstrate text guidance on a steel model, not on that one.
+- **A single-class model would ignore the query text entirely.** The retired
+  crack specialist returned the same boxes for `banana` as for a real query,
+  because with one class its contrastive head never had to separate one text
+  embedding from another. This is why `neu_crack` ships instead
+  (`phase-notes/PHASE-9.md` sections 4-5). Both shipped models reject `banana`.
 - A wrong-class or nonsense query returning **nothing is correct behaviour**, and
   is worth demonstrating deliberately: it shows the model discriminating rather
   than boxing whatever text it is given.

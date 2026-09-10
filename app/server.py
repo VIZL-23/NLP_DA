@@ -5,18 +5,32 @@ a demo. Inference lives in `tgfem.inference.DefectDetector`; this file owns HTTP
 and nothing else, so the same detector can back a deployed service later without
 being rewritten.
 
-Why several models instead of one
----------------------------------
-A single 16-class NEU+GC10 model was trained and measured, and it is WORSE than
-the per-dataset specialists on both taxonomies: GC10 classes 0.598 vs 0.638
-(-4.0 points), NEU classes 0.704 vs 0.720 (-1.6). Training the two steel
-datasets together makes each one harder, and it also cost novel-paraphrase
-coverage (0/6 vs 1/6). So the app loads specialists and lets the user pick the
-domain, which gives the same combined vocabulary at strictly better accuracy.
+Which models are loaded, and why these
+--------------------------------------
+Merging is not always bad and not always good - it was measured both ways:
+
+  * NEU + GC10 (two STEEL datasets, 16 classes) is WORSE than the specialists
+    on both taxonomies: GC10 0.598 vs 0.638, NEU 0.704 vs 0.720. Near-synonymous
+    classes across two steel processes make each one harder. Not shipped.
+  * NEU + crack (steel + concrete, 7 classes) costs nothing: NEU 0.7264 against
+    the specialist's 0.7205, crack 0.448 against 0.465 on a quarter of the crack
+    training images. Shipped, and it REPLACES both specialists.
+
+The reason `neu_crack` ships even though the crack specialist scores higher on
+crack: the specialist has one class, so its contrastive head never had to
+separate one text embedding from another and it returns the same boxes for
+`banana` as for a real query (PHASE-9.md section 4). The 7-class model rejects
+`banana`, and rejects `scratches on the steel surface` on a concrete image -
+cross-class discrimination, not merely unknown-text failure. A 1.6-point mAP
+difference does not outweigh a text interface that works.
+
+The `neu` and `crack` specialists stay in runs/ as the evidence for this and can
+be re-added here in one line; they are not loaded because a demo with two extra
+models that answer the same questions worse is just a way to pick the wrong one.
 
 Run:
     python app/server.py
-    python app/server.py --port 8080 --only neu
+    python app/server.py --port 8080 --only neu_crack
 Then open http://localhost:8000
 """
 
@@ -63,12 +77,10 @@ class ModelSpec:
 # section 4). A demo where the user types their own words needs the robust
 # model, not the one with the best number.
 MODELS = [
-    ModelSpec("neu", "Steel · NEU-DET", "6 classes · hot-rolled steel strip",
-              "phase6_neu_closed_tgfem_phraseaug"),
+    ModelSpec("neu_crack", "Steel + concrete", "7 classes · steel strip and concrete cracks",
+              "phase6_neu_crack_closed_tgfem_phraseaug"),
     ModelSpec("gc10", "Steel · GC10-DET", "10 classes · galvanised steel sheet",
               "phase6_gc10_closed_tgfem_phraseaug"),
-    ModelSpec("crack", "Concrete · cracks", "1 class · concrete and pavement",
-              "phase6_crack_closed_tgfem_phraseaug"),
 ]
 
 STATIC = Path(__file__).resolve().parent / "static"

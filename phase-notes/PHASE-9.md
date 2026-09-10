@@ -231,6 +231,78 @@ query about concrete means anything. Left for the user to call.
 
 ---
 
+## 5. Option A: joint NEU+crack training fixes the text interface, for free
+
+The hypothesis in section 4 was that giving crack six steel classes to compete
+against would make the text discriminate. It does, and it costs nothing.
+
+`phase6_neu_crack_closed_tgfem_phraseaug` - 7 classes, 100 epochs, 3,584 train
+images (NEU 1,434 + a seeded source-stratified 2,150-image crack subsample),
+`pretrained_clip_loaded: true`. **Overall mAP@0.5 = 0.6867.**
+
+### The negative control now passes
+
+```
+concrete image, conf >= 0.10
+  a crack in the concrete surface     2 boxes   0.5592
+  crack                               3 boxes   0.5402
+  banana                              0 boxes
+  a happy elephant                    0 boxes
+  scratches on the steel surface      0 boxes    <- a TRAINED class, rejected
+
+steel image (scratches), conf >= 0.25
+  scratches on the steel surface      1 box     0.6779
+  a crack in the concrete surface     0 boxes
+  banana                              0 boxes
+```
+
+The `scratches`-on-concrete row is the load-bearing one. A model that returned
+nothing for unfamiliar text would fail that test too - rejecting a *trained*
+class because it does not match *this image* is cross-class discrimination, and
+that is what the single-class model could not do at all.
+
+### It costs nothing on steel
+
+| class | joint | NEU specialist | diff |
+|---|---|---|---|
+| crazing | 0.430 | 0.366 | +0.064 |
+| inclusion | 0.737 | 0.757 | -0.020 |
+| patches | 0.912 | 0.881 | +0.031 |
+| pitted_surface | 0.822 | 0.824 | -0.002 |
+| rolled-in_scale | 0.577 | 0.604 | -0.027 |
+| scratches | 0.880 | 0.891 | -0.010 |
+| **NEU mean** | **0.7264** | **0.7205** | **+0.0059** |
+
+| | joint | crack specialist | diff |
+|---|---|---|---|
+| crack | 0.4483 | 0.4647 | -0.0164 |
+
+Steel is unchanged (+0.6 is inside the +/-0.10 per-class noise band established
+in Phase 7; the honest claim is "no measurable cost", not "an improvement").
+Crack loses 1.6 points **while training on 2,150 images instead of 8,126** - a
+quarter of the data for a sixth of the score, which is a good trade and probably
+recoverable by raising `--crack-train`.
+
+### Why this contradicts section 1, and why both results stand
+
+Section 1 found merging NEU+GC10 *hurt* both taxonomies. This section finds
+merging NEU+crack hurts neither. The two are consistent: NEU and GC10 are two
+photographs of **the same material** with near-synonymous classes (`inclusion`
+exists in both taxonomies), so the model must separate genuinely confusable
+categories. Steel and concrete are not confusable. Merging helps when the added
+classes are far apart and hurts when they are close - which is a more useful
+conclusion than either result alone.
+
+### What ships
+
+The app now loads `neu_crack` (7 classes) + `gc10` (10 classes). The `neu` and
+`crack` specialists are retired from the app and kept in `runs/` as evidence.
+The crack specialist scores 1.6 points higher on crack and is still the wrong
+thing to ship: it ignores the query text entirely, and a text-guided detection
+demo whose text does nothing is not the deliverable.
+
+---
+
 ## What is still open
 
 - **Decide on the 7-class NEU+crack experiment** (section 4). It is the only

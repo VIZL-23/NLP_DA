@@ -62,15 +62,34 @@ python scripts/verify_labels.py     # -> phase-notes/assets/label_check.png
 
 ### Datasets
 
-`NEU-DET` and `SDNET2018` are committed to the repo. **`GC10-DET` and
-`DeepCrack` are gitignored — download them separately:**
+Only **`NEU-DET`** is committed to the repo (37 MB). Everything else is
+gitignored and downloaded per machine — including `SDNET2018`, which was
+untracked once it turned out to be unused. Every generated `*-yolo/` directory
+is rebuilt by a script and must never be committed.
 
-| Dataset | Source | Save to |
-|---|---|---|
-| GC10-DET | [kaggle: zhangyunsheng/defects-class-and-location](https://www.kaggle.com/datasets/zhangyunsheng/defects-class-and-location) | `datasets/GC10-DET/` |
-| DeepCrack | [github: yhlleo/DeepCrack](https://github.com/yhlleo/DeepCrack) → `./dataset` | `datasets/DeepCrack/` |
+| Dataset | Source | Save to | Used for |
+|---|---|---|---|
+| GC10-DET | [kaggle: zhangyunsheng/defects-class-and-location](https://www.kaggle.com/datasets/zhangyunsheng/defects-class-and-location) | `datasets/GC10-DET/` | `gc10` model |
+| DeepCrack | [github: yhlleo/DeepCrack](https://github.com/yhlleo/DeepCrack) → `./dataset` | `datasets/DeepCrack/` | held-out OOD probe |
+| Merged crack set | `python scripts/download_cracks.py` (resumable) | `datasets/CRACK500/parquet/` | `neu_crack` model |
+| Concrete defects | [Roboflow Universe, SHM, CC BY 4.0](https://universe.roboflow.com/shm-agftj/concrete-defect-detection-pl8ed) → export **YOLOv11**, extract | `datasets/concrete-defect-roboflow/` | `concrete` model |
+
+Then build the YOLO layouts:
+
+```bash
+python scripts/prepare_neu_det.py
+python scripts/prepare_gc10.py
+python scripts/prepare_deepcrack.py
+python scripts/prepare_crack_merged.py   # needs download_cracks.py first
+python scripts/prepare_neu_crack.py      # needs neu-det-yolo + crack-merged-yolo
+python scripts/prepare_concrete.py       # needs the Roboflow export
+```
 
 `python scripts/check_env.py` reports exactly what is present and what is wrong.
+
+> **Never commit a dataset or an archive.** A 363 MB parquet in a commit once
+> made a push unpushable — GitHub hard-rejects any file over 100 MB. `.gitignore`
+> now covers every generated `*-yolo/` directory and `datasets/*.zip|tar|7z|rar`.
 
 ---
 
@@ -91,7 +110,7 @@ before starting a phase.
 | **6** | Training | **Done, on GPU, real CLIP** | 5 runs at the report's schedule. `pretrained_clip_loaded: true` throughout. **The result is negative** — see below |
 | **7** | Evaluation & ablations | **Done** | Ablations (a), (d), (g) + phrase augmentation, all on GPU. Text interface characterised. GC10 specialist 0.6379; DeepCrack run added |
 | **8** | Report & demo | Scaffolded | `scripts/demo.py` verified end to end; the report itself needs restructuring around the Phase 6 result |
-| **9** | Specialists + app | **Done** | 16-class steel merge **rejected**, 7-class steel+concrete merge **shipped**; concrete data grown 255 -> 8,126 images; single-class models shown not to be text-guided |
+| **9** | Specialists + app | **Done** | 16-class steel merge **rejected**, 7-class steel+concrete merge **shipped**; single-class models shown not to be text-guided; multi-class concrete model added (6 classes); app serves 3 models / 23 phrases |
 
 \* **Verified by actually running the code, not numerically yet.** All of
 Phases 4-8 have been built and executed on a machine with no GPU and no live
@@ -220,7 +239,7 @@ so it is usable mid-project with whatever is ready.
 
 ```bash
 python app/server.py --device cpu        # force CPU (e.g. while the GPU is training)
-python app/server.py --only neu gc10     # load a subset of the models
+python app/server.py --only neu_crack     # load a subset of the models
 python app/server.py --port 8080         # if 8000 is taken
 ```
 
@@ -228,15 +247,17 @@ The model list, each vocabulary and each sample set all come **from the server**
 which reads them from the checkpoints themselves. Adding a model is one entry in
 `MODELS` in `app/server.py`; the frontend needs no change.
 
-### The two models, and why these
+### The three models, and why these
 
-| model | classes | domain | mAP@0.5 |
-|---|---|---|---|
-| `neu_crack` | 7 | steel strip + concrete cracks | 0.6867 |
-| `gc10` | 10 | galvanised steel sheet | 0.6379 |
+| model | classes | domain | mAP@0.5 | default conf |
+|---|---|---|---|---|
+| `neu_crack` | 7 | steel strip + concrete cracks | 0.6867 | 0.25 |
+| `gc10` | 10 | galvanised steel sheet | 0.6379 | 0.25 |
+| `concrete` | 6 | concrete structural defects | 0.3256 | 0.10 |
 
-Merging datasets was measured **both ways**, and the result depends entirely on
-how similar the classes are:
+**23 queryable phrases across three domains.** All three reject nonsense text.
+
+#### Merging was measured both ways, and the answer depends on class distance
 
 | merge | outcome | shipped? |
 |---|---|---|
@@ -244,13 +265,37 @@ how similar the classes are:
 | NEU + crack (steel + concrete, 7 classes) | NEU 0.7264 vs 0.7205, crack 0.448 vs 0.465 | **yes** |
 
 Two steel datasets share near-synonymous classes (`inclusion` exists in both),
-so the model has to separate genuinely confusable categories and every class
-gets harder. Steel and concrete are not confusable, so that merge costs nothing
-measurable - and it is the only configuration where a concrete query means
-anything (see below).
+so the model must separate genuinely confusable categories and every class gets
+harder. Steel and concrete are not confusable, so that merge costs nothing
+measurable. **Merging helps when the added classes are far apart and hurts when
+they are close** - which is more useful than either result alone.
 
-`neu_crack` **replaces** the separate NEU and crack specialists, which stay in
-`runs/` as the evidence for this decision.
+The `concrete` model is kept **separate** for the same reason: its classes sit on
+the same material as `crack`, so folding it in would recreate the NEU+GC10
+situation. `neu_crack` replaces the old NEU and crack specialists, which stay in
+`runs/` as the evidence.
+
+#### Why `neu_crack` exists at all
+
+A single-class crack model **is not text-guided**. With `nc=1` its contrastive
+head was never asked to separate one text embedding from another, so it returned
+the same boxes for `banana` as for a real query (confidences differing by
+~0.002). Giving crack six steel classes to compete against fixed it, at no
+measurable cost to steel. See `phase-notes/PHASE-9.md` sections 4-5.
+
+#### Confidence defaults are per model, and measured
+
+`concrete` starts at 0.10, not 0.25. Its boxes are looser and its imagery is
+field photography, so its scores run lower than the steel models'. Hit rate on
+correct queries, single-class test images:
+
+| | conf 0.25 | conf 0.10 |
+|---|---|---|
+| all six classes | 53% | **80%** |
+
+At a global 0.25 default, `crack` found nothing at all and `scaling` found a
+third of what it can - a working model presenting as broken. `ModelSpec.default_conf`
+carries the per-model value; the UI reads it from `/api/info`.
 
 ### Which checkpoints it uses, and why
 
@@ -272,6 +317,7 @@ the project looks broken. The 0.006 mAP difference is well inside noise
 ```bash
 python scripts/make_samples.py --dataset neu_crack  # -> app/samples/neu_crack/
 python scripts/make_samples.py --dataset gc10      # -> app/samples/gc10/
+python scripts/make_samples.py --dataset concrete  # -> app/samples/concrete/
 ```
 
 One folder per model, so a steel checkpoint is never demoed on a concrete image
@@ -296,7 +342,16 @@ These are measured, not guesses (`phase-notes/PHASE-7.md` sections 3-4):
   crack specialist returned the same boxes for `banana` as for a real query,
   because with one class its contrastive head never had to separate one text
   embedding from another. This is why `neu_crack` ships instead
-  (`phase-notes/PHASE-9.md` sections 4-5). Both shipped models reject `banana`.
+  (`phase-notes/PHASE-9.md` sections 4-5). All three shipped models reject
+  `banana`, and also reject a *trained sibling class* that does not match the
+  image - the stronger form of the test.
+- **`rust_stain` does not work.** 136 training boxes, AP 0.031. Do not
+  demonstrate it. Lead the concrete model with `spalling` (AP 0.581, found in
+  6 of 6 test images).
+- **The concrete model is much weaker than the steel ones** (0.326 vs 0.69/0.64)
+  and that is the task, not a bug: field photography of buildings, region-level
+  defects whose boxes cover a median 12% of the image, and two classes under 250
+  boxes. Per-class numbers are in `phase-notes/PHASE-9.md` section 6.
 - A wrong-class or nonsense query returning **nothing is correct behaviour**, and
   is worth demonstrating deliberately: it shows the model discriminating rather
   than boxing whatever text it is given.
@@ -315,6 +370,11 @@ scripts/
   prepare_neu_det.py   VOC→YOLO, splits, dataset YAMLs, geometry stats
   prepare_gc10.py      GC10-DET VOC→YOLO + splits + YAMLs
   prepare_deepcrack.py DeepCrack mask→box (connected components) + YAMLs
+  download_cracks.py   resumable HTTP-Range fetch of the merged crack parquet
+  prepare_crack_merged.py  parquet→YOLO boxes; keeps crack-free backgrounds,
+                       excludes DeepCrack so the OOD probe stays clean
+  prepare_neu_crack.py NEU + crack → 7 classes (seeded, source-stratified)
+  prepare_concrete.py  Roboflow concrete export → project layout (rename only)
   verify_labels.py     draws converted boxes back onto images
   build_prompts.py     text-corpus validation + protocol filtering
   train_baseline.py    Phase 3 baselines (stock / stock_scratch / cbam)
@@ -328,8 +388,10 @@ scripts/
   demo.py              Phase 8 text-query inference demo
   probe_wording.py     Phase 7 wording-robustness probe (graded paraphrases)
   probe_generalisation.py  Phase 7 corpus-absent phrasings: coverage vs semantics
-  prepare_combined.py  NEU + GC10 merged into one 16-class dataset
+  prepare_combined.py  NEU + GC10 merged into one 16-class dataset (REJECTED,
+                       kept as the evidence — see PHASE-9.md section 1)
   make_samples.py      bundle demo samples from the test split (fixed seed)
+  run_crack_specialist.sh  queues the crack run behind a busy GPU
 src/tgfem/
   module.py            TGFEM - real math (Phase 5)
   language.py          TextEncoder, ContextTokenLearner, TextConditioner (Phase 4)
@@ -343,7 +405,7 @@ cfg/
   yolo11-cbam.yaml             Phase 3 closed-vocab CBAM baseline (stock Detect)
   yolo11-cbam-worlddetect.yaml ablation (g) - CBAM gates + WorldDetect head
 prompts/
-  defect_corpus.json   170 natural-language defect descriptions, 17 classes  (DRAFT)
+  defect_corpus.json   220 natural-language defect descriptions, 22 classes  (DRAFT)
 datasets/              source data + generated *-yolo/ dirs (gitignored)
 phase-notes/           per-phase write-ups and findings
 ```

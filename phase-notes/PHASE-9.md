@@ -303,6 +303,114 @@ demo whose text does nothing is not the deliverable.
 
 ---
 
+## 6. A real multi-class concrete model
+
+Sections 4-5 solved the *text* problem for concrete by giving `crack` six steel
+classes to compete against. It did not solve the *vocabulary* problem: the only
+concrete question the app could answer was still "is there a crack".
+
+Source: **Roboflow Universe, "Concrete defect detection" by SHM, CC BY 4.0** —
+1,680 images, 3,565 boxes, 6 classes, already in YOLO format.
+`scripts/prepare_concrete.py` renames the classes into the corpus's snake_case
+(indices untouched, so no label file is rewritten) and writes manifests at the
+dataset root.
+
+### Choosing it was most of the work
+
+Three candidates were rejected before this one, and the reasons generalise:
+
+| dataset | why not |
+|---|---|
+| **GYU-DET** (11,123 imgs, 6 classes, YOLO, validated on YOLOv11) | 4608x3456 images - tens of GB, and the paper never states a size. Also "cracks significantly underrepresented", which is the class we already have. |
+| **Roboflow `yolov11-iavvq`** (2.2k, 7 classes) | Four of its seven classes are literally named `0`, `1`, `2`, `3`. A class with no name has no text to query, which is fatal *here* specifically. It also had 0 generated versions, so nothing to download. |
+| **CODEBRIM** (1,590 imgs, 5 classes) | Sound, but needs conversion and the archive is large. Kept as the fallback. |
+
+The lesson worth keeping: for this project a dataset's **class names are part of
+the data**. A taxonomy of integers is unusable no matter how good the boxes are.
+
+### The audit came back clean
+
+```
+1,680 label files · 3,565 boxes
+0 empty · 0 malformed · 0 out-of-range · 0 orphaned images
+```
+
+Better than expected for a community upload. The class balance is not:
+
+| class | boxes | AP@0.5 |
+|---|---|---|
+| crack | 1,202 | 0.383 |
+| efflorescence | 1,156 | 0.334 |
+| scaling | 433 | 0.307 |
+| spalling | 424 | **0.581** |
+| exposed_reinforcement | 214 | 0.318 |
+| **rust_stain** | **136** | **0.031** |
+
+**Overall mAP@0.5 = 0.3256**, 150 epochs, `pretrained_clip_loaded: true`.
+
+`rust_stain` was predicted to fail before training started, from box count alone
+(`prepare_concrete.py` prints the warning), and it did. Note that AP does **not**
+track box count beyond a floor: `spalling` has a third of `crack`'s boxes and
+nearly twice its AP, because a spall is a compact high-contrast region while a
+crack is a thin line in a loose box.
+
+### Vocabulary phrasings had to be written
+
+Six classes needed corpus entries before training could start - 10 phrasings
+each across all five tiers (bare/natural/visual/material/alias), which is what
+`--phrase-aug` resamples from. Without them `class_texts_for` has nothing to
+look up and the model is not text-guided in any meaningful sense.
+
+`crack` deliberately reuses the existing DeepCrack entry rather than getting a
+duplicate: these *are* concrete cracks.
+
+### Text discrimination passes, including against siblings
+
+```
+spalling image, conf >= 0.10
+  spalling on the concrete surface        1 box   0.32
+  efflorescence on the concrete surface   0 boxes    <- trained sibling class
+  rust staining on the concrete surface   0 boxes    <- trained sibling class
+  banana                                  0 boxes
+  a happy elephant                        0 boxes
+```
+
+Rejecting a *trained sibling* is the strong form of the test - a model that
+merely failed on unfamiliar words would also return nothing for `banana`.
+
+### The confidence default was wrong, and it was measurable
+
+Hit rate on the correct query, single-class test images:
+
+| class | conf 0.25 | conf 0.10 |
+|---|---|---|
+| spalling | 6/6 | 6/6 |
+| efflorescence | 5/6 | 6/6 |
+| exposed_reinforcement | 3/3 | 3/3 |
+| scaling | 2/6 | 6/6 |
+| crack | 0/6 | 3/6 |
+| rust_stain | 0/3 | 0/3 |
+| **total** | **53%** | **80%** |
+
+This model's scores run lower than the steel models' because its boxes are
+looser and its imagery is field photography rather than lab micrographs. At the
+app's global 0.25 default, `crack` found nothing at all and `scaling` found a
+third of what it can - a working model presenting as broken.
+
+`ModelSpec.default_conf` is therefore **per model** (steel 0.25, concrete 0.10),
+returned by `/api/info` and applied by the UI on model switch. Measured, not
+guessed: that table is the justification.
+
+### Kept separate, deliberately
+
+This model is **not** merged into `neu_crack`. Its classes sit on the same
+material as `crack` and are plausibly confusable with it, which is structurally
+the NEU+GC10 situation from section 1 that hurt both taxonomies. Training it
+alone contains that risk, and the app's model picker turns it into a feature:
+three genuine domains, 23 queryable phrases.
+
+---
+
 ## What is still open
 
 - **Decide on the 7-class NEU+crack experiment** (section 4). It is the only

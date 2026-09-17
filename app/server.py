@@ -204,6 +204,19 @@ def main():
     ap.add_argument("--port", type=int, default=8000)
     args = ap.parse_args()
 
+    # Check the port BEFORE loading ~800 MB of checkpoints. Otherwise a busy
+    # port is only discovered after the whole load, as a raw uvicorn bind error.
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        try:
+            probe.bind((args.host, args.port))
+        except OSError:
+            raise SystemExit(
+                f"port {args.port} is already in use - is the app already running in "
+                "another terminal? Stop that one (Ctrl+C), or start this one with "
+                f"--port {args.port + 90}."
+            )
+
     wanted = [m for m in MODELS if not args.only or m.key in args.only]
     for spec in wanted:
         if not spec.checkpoint.exists():

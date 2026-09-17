@@ -72,6 +72,18 @@ python -m venv .venv --system-site-packages
 `--system-site-packages` lets the venv reuse the PyTorch you installed in step 1
 instead of downloading ~2.5 GB again.
 
+> **If `.venv` already exists, skip the first command.** Re-running
+> `python -m venv .venv` *without* `--system-site-packages` silently rewrites the
+> venv so it can no longer see your GPU PyTorch; the next `pip install` then
+> pulls a CPU-only PyTorch from PyPI, and everything quietly runs on the CPU.
+> This happened once — see *Troubleshooting* for the fix.
+
+Check you're on the GPU before going further — it should print `True`:
+
+```powershell
+.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+
 ### 3. Put the trained models in place
 
 The trained models are **not in git** — each is ~264 MB, over GitHub's 100 MB
@@ -142,9 +154,27 @@ Press `Ctrl+C` in the terminal to stop the server.
 | `ModuleNotFoundError: fastapi`, or `Form data requires "python-multipart"` | step 2 didn't run in this venv |
 | `no checkpoints found` | step 3 — the `best.pt` files aren't at those exact paths |
 | `ModuleNotFoundError: torch` | step 1, or the venv was created without `--system-site-packages` |
-| port already in use | another server is running — stop it, or use `--port 8080` |
+| `port 8000 is already in use` | the app is already running in another terminal — stop it with `Ctrl+C`, or add `--port 8090` |
+| startup lists `cpu` instead of `cuda:0` on a GPU machine | the venv has a CPU-only PyTorch hiding the GPU one — fix below |
 | page looks stale after an update | hard-refresh (`Ctrl+F5`) |
 | a query returns nothing | often correct — see [Known limits](#known-limits-worth-stating-up-front-in-a-demo); also try lowering the confidence slider |
+
+**Fixing `cpu` instead of `cuda:0`.** Check what the venv sees:
+
+```powershell
+.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+
+A version ending in `+cpu` is the problem. In `.venv\pyvenv.cfg`, set
+`include-system-site-packages = true`, then remove the CPU copy so the GPU
+PyTorch from step 1 is used again:
+
+```powershell
+.venv\Scripts\python.exe -m pip uninstall -y torch torchvision
+```
+
+Re-run the check; it should now show a `+cu…` version and `True`.
+To find what's holding a port: `Get-NetTCPConnection -LocalPort 8000 -State Listen`.
 
 ---
 

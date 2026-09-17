@@ -251,7 +251,7 @@ which reads them from the checkpoints themselves. Adding a model is one entry in
 
 | model | classes | domain | mAP@0.5 | default conf |
 |---|---|---|---|---|
-| `neu_crack` | 7 | steel strip + concrete cracks | 0.6867 | 0.25 |
+| `neu_crack` | 7 | steel strip + concrete cracks | 0.6756 | 0.25 |
 | `gc10` | 10 | galvanised steel sheet | 0.6379 | 0.25 |
 | `concrete` | 6 | concrete structural defects | 0.3256 | 0.10 |
 
@@ -282,6 +282,12 @@ head was never asked to separate one text embedding from another, so it returned
 the same boxes for `banana` as for a real query (confidences differing by
 ~0.002). Giving crack six steel classes to compete against fixed it, at no
 measurable cost to steel. See `phase-notes/PHASE-9.md` sections 4-5.
+
+#### The shipped `neu_crack` is the synonym-corpus run
+
+`phase6_neu_crack_closed_tgfem_phraseaug_syn` - 91 corpus phrasings instead of
+70. It costs 0.011 mAP and answers to noticeably more wording. Same trade as
+phrase augmentation itself, and made for the same reason.
 
 #### Confidence defaults are per model, and measured
 
@@ -332,9 +338,21 @@ These are measured, not guesses (`phase-notes/PHASE-7.md` sections 3-4):
 
 - **Only the trained classes work.** Held-out classes score 0.000 AP - there is
   no working zero-shot behaviour.
-- **Roughly 1 in 6 genuinely novel phrasings works.** Wording close to the
-  listed phrases is reliable; wording with no lexical overlap usually returns
-  nothing. The UI shows the supported phrases for this reason.
+- **Vocabulary breadth is bought by writing phrases, not by training longer.**
+  Adding 21 synonym entries to the corpus and retraining moved `drag marks left
+  along the steel` from 0.028 to **0.685** - a phrase PHASE-7 had recorded as
+  failing - for -0.011 mAP. A synonym never added to the corpus stayed silent.
+  If a defect name matters to you, put it in `prompts/defect_corpus.json` and
+  retrain; nothing else will produce it (`phase-notes/PHASE-9.md` section 8).
+- **The text interface is keyed on the defect NOUN.** Measured across both
+  shipped models, 8 of 8 novel phrasings that keep the class noun score
+  0.246-0.674; all 8 that replace it score at most 0.088, with no overlap
+  between the groups. So `scratches on the metal surface` works and
+  `a crack in the concrete wall` works, but `long thin gouges scored into metal`
+  and `a dark split running through the stone` return nothing - even though an
+  inspector would call those the same defect. Every phrasing in the corpus works
+  (coverage 10/10); the UI lists them for this reason.
+  See `phase-notes/PHASE-9.md` section 7.
 - **Each model expects its own domain.** The steel models have only ever seen
   200x200 grayscale steel imagery; a cracked wall belongs to the `crack` model.
   Picking the wrong model is the most likely way to make the demo look broken.
@@ -405,7 +423,7 @@ cfg/
   yolo11-cbam.yaml             Phase 3 closed-vocab CBAM baseline (stock Detect)
   yolo11-cbam-worlddetect.yaml ablation (g) - CBAM gates + WorldDetect head
 prompts/
-  defect_corpus.json   220 natural-language defect descriptions, 22 classes  (DRAFT)
+  defect_corpus.json   241 natural-language defect descriptions, 22 classes  (DRAFT)
 datasets/              source data + generated *-yolo/ dirs (gitignored)
 phase-notes/           per-phase write-ups and findings
 ```

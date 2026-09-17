@@ -108,6 +108,10 @@ def main():
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--device", default="0")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--run-suffix", default="",
+                    help="appended to the run name. Use it when re-training an "
+                         "existing configuration so the shipped checkpoint is not "
+                         "overwritten (project runs use exist_ok=True).")
     ap.add_argument("--workers", type=int, default=2)
     args = ap.parse_args()
 
@@ -133,6 +137,8 @@ def main():
         run_name += "_phraseaug"
     if args.tier != "natural":
         run_name += f"_{args.tier}"
+    if args.run_suffix:
+        run_name += f"_{args.run_suffix}"
 
     print("=" * 62)
     print(f"Phase 6 - {run_name}")

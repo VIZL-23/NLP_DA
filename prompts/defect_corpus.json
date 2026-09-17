@@ -59,6 +59,18 @@
         {
           "tier": "alias",
           "text": "crack network defect"
+        },
+        {
+          "tier": "alias",
+          "text": "map cracking on the steel surface"
+        },
+        {
+          "tier": "alias",
+          "text": "a web of hairline fissures"
+        },
+        {
+          "tier": "alias",
+          "text": "crazed surface checking"
         }
       ]
     },
@@ -106,6 +118,18 @@
         {
           "tier": "alias",
           "text": "non-metallic particle defect"
+        },
+        {
+          "tier": "alias",
+          "text": "embedded foreign matter in the steel"
+        },
+        {
+          "tier": "alias",
+          "text": "a sliver rolled into the surface"
+        },
+        {
+          "tier": "alias",
+          "text": "entrapped debris in the steel"
         }
       ]
     },
@@ -153,6 +177,18 @@
         {
           "tier": "alias",
           "text": "discolouration patch"
+        },
+        {
+          "tier": "alias",
+          "text": "blotches on the steel surface"
+        },
+        {
+          "tier": "alias",
+          "text": "irregular mottling across the steel"
+        },
+        {
+          "tier": "alias",
+          "text": "discoloured patches of surface"
         }
       ]
     },
@@ -200,6 +236,18 @@
         {
           "tier": "alias",
           "text": "pitting corrosion"
+        },
+        {
+          "tier": "alias",
+          "text": "a pockmarked steel surface"
+        },
+        {
+          "tier": "alias",
+          "text": "a cratered area of the steel"
+        },
+        {
+          "tier": "alias",
+          "text": "corrosion pits across the surface"
         }
       ]
     },
@@ -247,6 +295,18 @@
         {
           "tier": "alias",
           "text": "embedded oxide scale"
+        },
+        {
+          "tier": "alias",
+          "text": "scale pressed into the steel surface"
+        },
+        {
+          "tier": "alias",
+          "text": "embedded mill scale"
+        },
+        {
+          "tier": "alias",
+          "text": "rolled-in oxide flakes"
         }
       ]
     },
@@ -294,6 +354,18 @@
         {
           "tier": "alias",
           "text": "abrasion mark"
+        },
+        {
+          "tier": "alias",
+          "text": "gouges in the metal surface"
+        },
+        {
+          "tier": "alias",
+          "text": "furrows worn into the steel surface"
+        },
+        {
+          "tier": "alias",
+          "text": "drag marks across the metal"
         }
       ]
     },
@@ -811,6 +883,18 @@
         {
           "tier": "alias",
           "text": "fracture line"
+        },
+        {
+          "tier": "alias",
+          "text": "a split in the concrete surface"
+        },
+        {
+          "tier": "alias",
+          "text": "a fissure running through the concrete"
+        },
+        {
+          "tier": "alias",
+          "text": "a fracture line in the concrete"
         }
       ]
     },

@@ -77,14 +77,16 @@ class ModelSpec:
         return REPO_ROOT / "app" / "samples" / self.key
 
 
-# Every entry is a phrase-augmented checkpoint. That choice is on EVIDENCE, not
-# on mAP: on NEU the augmented model scores 0.7205 vs 0.7268 for the plain one,
-# but responds to 5 of 6 phrasings instead of 2 of 6 (phase-notes/PHASE-7.md
-# section 4). A demo where the user types their own words needs the robust
-# model, not the one with the best number.
+# Every entry is a phrase-augmented checkpoint, and `neu_crack` is additionally
+# the synonym-corpus run (`_syn`). Both choices trade a little mAP for words the
+# user might actually type, which is the same call each time:
+#   phrase augmentation  0.7268 -> 0.7205 mAP, 2 of 6 -> 5 of 6 phrasings
+#   synonym corpus       0.6867 -> 0.6756 mAP, "drag marks" 0.028 -> 0.685
+# A demo where the user types their own words needs the model that answers, not
+# the one with the best number. See PHASE-9.md sections 7-8.
 MODELS = [
     ModelSpec("neu_crack", "Steel + concrete", "7 classes · steel strip and concrete cracks",
-              "phase6_neu_crack_closed_tgfem_phraseaug"),
+              "phase6_neu_crack_closed_tgfem_phraseaug_syn"),
     ModelSpec("gc10", "Steel · GC10-DET", "10 classes · galvanised steel sheet",
               "phase6_gc10_closed_tgfem_phraseaug"),
     ModelSpec("concrete", "Concrete · structural", "6 classes · spalling, rebar, efflorescence",

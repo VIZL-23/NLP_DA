@@ -411,6 +411,165 @@ three genuine domains, 23 queryable phrases.
 
 ---
 
+## 7. Wording robustness of the shipped models — the head noun is the interface
+
+The probes were finally run on the models that actually ship. `probe_wording.py`
+now computes corpus membership itself rather than trusting its own hand-written
+row labels, because the two disagree: "a long straight bright line running
+across the surface" reads like free description but is a visual-tier corpus
+entry, so scoring on it proves coverage and nothing else. That mislabelling
+would have inflated the generalisation claim.
+
+### Coverage is excellent; generalisation is narrow
+
+| model / class | seen phrasings hit | novel phrasings hit |
+|---|---|---|
+| `neu_crack` / scratches | 4/4 | **1/2** |
+| `concrete` / spalling | 3/3 | **0/3** |
+| `concrete` / crack | 3/3 | **1/3** |
+
+Every phrasing the corpus contains works. That is what `--phrase-aug` bought,
+and it is why a user typing any of the listed phrases gets a result.
+
+### What separates a novel phrasing that works from one that fails
+
+Sorting every novel query by whether it keeps the class's head noun:
+
+| novel query | keeps noun? | best conf |
+|---|---|---|
+| scratches on the metal surface | **yes** (`scratches`) | 0.674 |
+| a crack in the concrete wall | **yes** (`crack`) | 0.393 |
+| spalling on the concrete wall | **yes** (`spalling`) | 0.246 |
+| a broken-out hollow exposing the stony interior | no | 0.088 |
+| a thin break travelling across the slab | no | 0.017 |
+| long thin gouges scored into metal | no | 0.014 |
+| a dark split running through the stone | no | 0.000 |
+| chunks missing from the face of the wall | no | 0.000 |
+
+**8 of 8.** Every phrase retaining the class noun scores 0.246-0.674; every
+phrase replacing it scores at most 0.088. There is no overlap between the two
+groups.
+
+This sharpens Phase 7's "matches words, not meaning" into something more
+specific and more useful: **the text interface is keyed on the defect noun.**
+Everything around the noun can change freely - `steel`->`metal`,
+`surface`->`wall`, whole clauses added or dropped - and the model still fires.
+Replace the noun with a true synonym (`crack`->`split`, `scratches`->`gouges`,
+`spalling`->`chunks missing`) and it goes silent, even though a human inspector
+would read those as the same defect.
+
+That is a real limitation and it should be stated in the demo, not discovered by
+an examiner typing "split".
+
+### One threshold caveat
+
+The probe's hit test is a fixed 0.25. `concrete` ships at a default confidence of
+0.10 (section 6), and `spalling on the concrete wall` scores 0.246 - a miss by
+the probe, a hit in the app. Read the spalling row as 1/3 at the model's own
+operating point, 0/3 at 0.25. The conclusion is unchanged; the binary
+understates the model slightly.
+
+---
+
+## 8. Is the head-noun limit corpus coverage? Mostly yes
+
+Section 7 showed the text interface is keyed on the defect noun. This tests
+whether that is fixable by writing more nouns, or is something deeper.
+
+**Design.** 21 true-synonym `alias` entries added to the corpus, 3 per class
+across all 7 neu_crack classes (70 -> 91 phrases in the augmentation pool), then
+retrained identically (`--run-suffix syn`, so the shipped checkpoint could not be
+overwritten). Two groups are probed with novel phrasings built around each noun:
+
+* **Group A** - nouns ADDED to the corpus (`gouge`, `drag mark`, `furrow`,
+  `split`, `fissure`, `fracture`, `pockmark`, `blotch`)
+* **Group B** - nouns deliberately NEVER added (`rupture`, `cleft`, `chipping`)
+
+Without group B the experiment proves only "training on X makes X work", which
+section 7 already established at 10/10 coverage.
+
+### Two confounds had to be filtered out first
+
+**Undetectable images.** The bundled `crack` sample scores 0.064 even for its own
+trained phrase, so the three crack rows test nothing about wording. Rows are only
+counted where the trained phrase itself clears 0.25 on that image.
+
+**A leaking control.** Two of the five held-back nouns were already in the
+220-phrase corpus:
+
+```
+striation   -> 'delicate low-contrast striations across the sheet'
+score mark  -> 'narrow elongated grooves scored into the metal'
+rupture, cleft, chipping -> clean
+```
+
+A guard in the corpus script caught a third leak while the phrases were being
+written (`scored grooves along the steel` shares a stem with `score marks`).
+**Designing a clean lexical control against a 220-phrase corpus is harder than it
+looks** - worth remembering before trusting any future probe of this kind.
+
+### Result on valid rows
+
+| grp | noun | trained-phrase ref | baseline | synonyms | gain |
+|---|---|---|---|---|---|
+| A | drag mark | 0.746 | 0.028 | **0.685** | +0.657 |
+| A | gouge | 0.746 | 0.012 | **0.337** | +0.325 |
+| A | furrow | 0.746 | 0.021 | **0.314** | +0.294 |
+| A | pockmark | 0.883 | 0.064 | 0.088 | +0.025 |
+| B | chipping | 0.883 | 0.171 | **0.027** | -0.144 |
+
+**Group A 3/4 · Group B 0/1.**
+
+`drag marks` is the headline: 0.028 -> 0.685, a 24x increase, and it is one of the
+exact phrases PHASE-7 recorded as failing. Writing the noun into the corpus fixed
+it.
+
+### What this does and does not establish
+
+It supports the coverage hypothesis **directionally**. It does not settle it:
+
+* Only 5 of 12 planned rows survived filtering, so the sample is small.
+* **`pockmark` was added and still failed** (0.088) on a highly detectable image
+  (ref 0.883). Adding the noun is therefore not sufficient by itself; the
+  surrounding wording still matters. Any claim of the form "just add the word and
+  it works" is too strong.
+* Group B has exactly one clean, countable row.
+
+The defensible statement: *adding a synonym to the corpus usually makes it work,
+a synonym never added stays silent, and the interface remains lexical rather than
+semantic.* The practical consequence is that vocabulary breadth is bought by
+writing phrases, not by training longer or on more images.
+
+### Cost, and the decision to ship it
+
+| | baseline | synonyms | diff |
+|---|---|---|---|
+| overall mAP@0.5 | 0.6867 | 0.6756 | **-0.0110** |
+| scratches | 0.880 | 0.899 | +0.019 |
+| pitted_surface | 0.822 | 0.855 | +0.033 |
+| crazing | 0.430 | 0.348 | **-0.082** |
+| crack | 0.448 | 0.443 | -0.005 |
+
+-0.011 overall is small but at the edge of what this project has been calling
+noise, so it is not claimed as zero. `crazing` carries most of it and is the
+noisiest class in the whole project (0.366 / 0.430 / 0.348 across three runs of
+the same configuration).
+
+The negative control is unaffected - `banana`, `a wooden door` and sibling
+trained classes all return nothing on a scratches image.
+
+**Shipped**, on exactly the precedent set in PHASE-7:
+
+| change | mAP cost | vocabulary gain |
+|---|---|---|
+| phrase augmentation | 0.7268 -> 0.7205 | 2 of 6 -> 5 of 6 phrasings |
+| synonym corpus | 0.6867 -> 0.6756 | `drag marks` 0.028 -> 0.685 |
+
+Each time, a fraction of a point of mAP buys words a user might actually type.
+For a deliverable whose product IS the text interface, that is the right trade.
+
+---
+
 ## What is still open
 
 - **Decide on the 7-class NEU+crack experiment** (section 4). It is the only

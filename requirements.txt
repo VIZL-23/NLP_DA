@@ -24,3 +24,13 @@ opencv-python==4.10.0.84
 pillow==12.3.0
 PyYAML==6.0.3
 matplotlib==3.10.9
+
+# Demo app (app/server.py). python-multipart is required by FastAPI for the
+# image upload form - without it the server refuses to start.
+fastapi==0.120.4
+uvicorn==0.41.0
+python-multipart==0.0.20
+
+# Reads the merged crack dataset, which ships as parquet
+# (scripts/prepare_crack_merged.py). Only needed to rebuild that dataset.
+pyarrow==25.0.1
